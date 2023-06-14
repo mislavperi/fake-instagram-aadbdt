@@ -11,11 +11,11 @@ type Config struct {
 }
 
 type DatabaseConfig struct {
-	Host         string `split_words:"true"`
-	User         string `split_words:"true"`
-	Password     string `split_words:"true"`
-	DatabaseName string `split_words:"true"`
-	Port         string `split_words:"true"`
+	Host     string `split_words:"true"`
+	User     string `split_words:"true"`
+	Password string `split_words:"true"`
+	Name     string `split_words:"true"`
+	Port     string `split_words:"true"`
 }
 
 func DummyLoad() error {

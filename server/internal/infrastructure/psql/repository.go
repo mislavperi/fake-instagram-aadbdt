@@ -18,8 +18,9 @@ func NewRepository(
 	databaseName string,
 	port string,
 ) (*Repository, error) {
+	fmt.Println(host, user, password, databaseName, port)
 	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmodel=disable TimeZone=Asia/Shanghai",
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Shanghai",
 		host, user, password, databaseName, port,
 	)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})

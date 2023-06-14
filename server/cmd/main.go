@@ -1,10 +1,9 @@
 package main
 
 import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
+	"github.com/mislavperi/fake-instagram-aadbdt/server/cmd/api/bootstrap"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/cmd/api/config"
+	"github.com/mislavperi/fake-instagram-aadbdt/server/utils"
 )
 
 func main() {
@@ -13,11 +12,9 @@ func main() {
 		panic(err)
 	}
 
-	r := gin.Default()
-	r.GET("/ping", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
-	r.Run()
+	api, err := bootstrap.Api()
+
+	utils.Run(
+		api,
+	)
 }
