@@ -7,6 +7,8 @@ type User struct {
 	FirstName string
 	LastName  string
 	Username  string
+	Password  string
 	Email     string
-	Role      Role `gorm:"embedded;embeddedPrefix:role_"`
+	Role      Role    `gorm:"embedded;embeddedPrefix:role_"`
+	Package   Package `gorm:"embedded;embeddedPrefix:package_"`
 }
