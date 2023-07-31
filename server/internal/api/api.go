@@ -15,7 +15,7 @@ type API struct {
 	port uint
 }
 
-func NewAPI(userController *controllers.UserController, port uint) *API {
+func NewAPI(userController *controllers.UserController, planController *controllers.PlanController, port uint) *API {
 	api := &API{
 		gin:  gin.Default(),
 		port: port,
@@ -30,7 +30,7 @@ func NewAPI(userController *controllers.UserController, port uint) *API {
 			},
 		),
 	)
-	api.registerRoutes(userController)
+	api.registerRoutes(userController, planController)
 	return api
 }
 
@@ -49,7 +49,7 @@ func (a *API) Start(ctx context.Context) {
 	}
 }
 
-func (a *API) registerRoutes(userController *controllers.UserController) {
+func (a *API) registerRoutes(userController *controllers.UserController, planController *controllers.PlanController) {
 	authGroup := a.gin.Group("/auth")
 	authGroup.POST("/register", userController.RegisterUser())
 	authGroup.POST("/login", userController.Login())
@@ -57,4 +57,7 @@ func (a *API) registerRoutes(userController *controllers.UserController) {
 	userGroup := a.gin.Group("/user")
 	userGroup.Use(middlewares.JwtTokenCheck())
 	userGroup.GET("/whoami", userController.Whoami())
+
+	planGroup := a.gin.Group("/plans")
+	planGroup.GET("/get", planController.GetPlans())
 }

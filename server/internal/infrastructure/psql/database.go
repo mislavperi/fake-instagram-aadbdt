@@ -8,6 +8,9 @@ import (
 	"gorm.io/gorm"
 )
 
+var dbInstance *gorm.DB
+var err error
+
 func NewDatabaseConnection(
 	host string,
 	user string,
@@ -15,14 +18,17 @@ func NewDatabaseConnection(
 	databaseName string,
 	port string,
 ) (*gorm.DB, error) {
+	if dbInstance != nil {
+		return dbInstance, nil
+	}
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Shanghai",
 		host, user, password, databaseName, port,
 	)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	dbInstance, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
-	db.AutoMigrate(&models.User{}, &models.Role{}, &models.Plan{})
-	return db, nil
+	dbInstance.AutoMigrate(&models.User{}, &models.Role{}, &models.Plan{})
+	return dbInstance, nil
 }

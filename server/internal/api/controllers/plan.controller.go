@@ -1,6 +1,14 @@
 package controllers
 
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
+)
+
 type PlanService interface {
+	GetPlans() ([]models.Plan, error)
 }
 
 type PlanController struct {
@@ -13,6 +21,12 @@ func NewPlanController(planService PlanService) *PlanController {
 	}
 }
 
-func (c *PlanController) GetPlans() {
-	
+func (c *PlanController) GetPlans() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		plans, err := c.planService.GetPlans()
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+		}
+		ctx.JSON(http.StatusOK, plans)
+	}
 }

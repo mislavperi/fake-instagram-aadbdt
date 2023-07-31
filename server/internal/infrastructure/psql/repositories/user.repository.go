@@ -51,3 +51,13 @@ func (r *UserRepository) FetchUserInformation(username string) (*models.User, er
 	}
 	return &result, nil
 }
+
+func (r *UserRepository) SetUserPlan(username string, plan models.Plan) error {
+	var result models.User
+	if err := r.Database.First(&result).Where(&models.User{Username: username}).Error; err != nil {
+		return err
+	}
+	result.Plan = plan
+	r.Database.Save(result)
+	return nil
+}

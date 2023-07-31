@@ -18,9 +18,10 @@ type PlanService struct {
 	planMapper     PlanMapper
 }
 
-func NewPlanService(planRepository PlanRepository) *PlanService {
+func NewPlanService(planRepository PlanRepository, planMapper PlanMapper) *PlanService {
 	return &PlanService{
 		planRepository: planRepository,
+		planMapper:     planMapper,
 	}
 }
 

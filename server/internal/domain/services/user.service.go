@@ -11,21 +11,28 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type UserMapper interface {
+	MapUserToDTO(plan models.Plan) psqlmodels.Plan
+}
+
 type UserRepository interface {
 	Create(firstName string, lastName string, username string, email string, password string) error
 	CheckCredentials(username string, password string) error
 	FetchUserInformation(username string) (*psqlmodels.User, error)
+	SetUserPlan(username string, plan psqlmodels.Plan) error
 }
 
 type UserService struct {
 	UserRepository UserRepository
+	userMapper     UserMapper
 }
 
 const SECRET_KEY = "f83edb0a3b4e9547fd6fbd981513bce0d604472c547daaeed8907a78c5793671"
 
-func NewUserService(userRepository UserRepository) *UserService {
+func NewUserService(userRepository UserRepository, userMapper UserMapper) *UserService {
 	return &UserService{
 		UserRepository: userRepository,
+		userMapper:     userMapper,
 	}
 }
 
@@ -106,4 +113,13 @@ func (s *UserService) generateTokenPair(username string) (*string, *string, erro
 	}
 
 	return &accessToken, &refreshToken, nil
+}
+
+func (s *UserService) SelectUserPlan(username string, plan models.Plan) error {
+	mappedPlan := s.userMapper.MapUserToDTO(plan)
+	err := s.UserRepository.SetUserPlan(username, mappedPlan)
+	if err != nil {
+		return nil
+	}
+	return nil
 }
