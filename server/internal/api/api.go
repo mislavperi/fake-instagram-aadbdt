@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/api/controllers"
+	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/api/middlewares"
 )
 
 type API struct {
@@ -18,6 +20,16 @@ func NewAPI(userController *controllers.UserController, port uint) *API {
 		gin:  gin.Default(),
 		port: port,
 	}
+	api.gin.Use(
+		cors.New(
+			cors.Config{
+				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080"},
+				AllowMethods:     []string{"POST", "GET"},
+				AllowHeaders:     []string{"Content-Type", "Accept", "Authorization"},
+				AllowCredentials: true,
+			},
+		),
+	)
 	api.registerRoutes(userController)
 	return api
 }
@@ -38,8 +50,11 @@ func (a *API) Start(ctx context.Context) {
 }
 
 func (a *API) registerRoutes(userController *controllers.UserController) {
-	userGroup := a.gin.Group("/user")
-	userGroup.POST("/register", userController.RegisterUser())
-	userGroup.POST("/login", userController.Login())
+	authGroup := a.gin.Group("/auth")
+	authGroup.POST("/register", userController.RegisterUser())
+	authGroup.POST("/login", userController.Login())
 
+	userGroup := a.gin.Group("/user")
+	userGroup.Use(middlewares.JwtTokenCheck())
+	userGroup.GET("/whoami", userController.Whoami())
 }

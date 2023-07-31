@@ -43,3 +43,11 @@ func (r *UserRepository) CheckCredentials(username string, password string) erro
 	}
 	return nil
 }
+
+func (r *UserRepository) FetchUserInformation(username string) (*models.User, error) {
+	var result models.User
+	if err := r.Database.First(&result).Where(&models.User{Username: username}).Error; err != nil {
+		return nil, err
+	}
+	return &result, nil
+}

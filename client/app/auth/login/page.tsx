@@ -4,13 +4,13 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
+import { useRouter } from 'next/navigation'
 import { useToast } from "@/components/ui/use-toast";
 
 import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -31,6 +31,7 @@ const formSchema = z.object({
 
 export default function Login() {
   const { toast } = useToast();
+  const { push } = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -41,8 +42,9 @@ export default function Login() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const response = await fetch("http://localhost:8080/user/login", {
+    const response = await fetch("http://localhost:8080/auth/login", {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json"
@@ -60,10 +62,11 @@ export default function Login() {
     toast({
       description: "Login was successful",
     });
+    push("/")
   }
 
   return (
-    <div className="flex items-center bg-slate-50 h-screen justify-center">
+    <main className="flex items-center bg-slate-50 h-screen justify-center">
       <Form {...form} >
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -98,6 +101,6 @@ export default function Login() {
         </form>
       </Form>
       <Toaster />
-    </div>
+    </main>
   );
 }

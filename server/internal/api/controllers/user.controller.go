@@ -13,6 +13,7 @@ import (
 type UserService interface {
 	Create(firstName string, lastName string, username string, email string, password string) error
 	Login(username string, password string) (*string, *string, error)
+	GetUserInformation(token string) (*models.User, error)
 }
 
 type UserController struct {
@@ -27,7 +28,7 @@ func NewUserController(userService UserService) *UserController {
 
 func (c *UserController) Whoami() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-
+		ctx.JSON(http.StatusOK, "turn around")
 	}
 }
 
@@ -49,7 +50,7 @@ func (c *UserController) RegisterUser() gin.HandlerFunc {
 			return
 		}
 		ctx.JSON(http.StatusOK, nil)
-	} 
+	}
 }
 
 func (c *UserController) Login() gin.HandlerFunc {
@@ -69,7 +70,9 @@ func (c *UserController) Login() gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		fmt.Println(*accessToken, *refreshToken)
+		ctx.SetCookie("accessToken", *accessToken, 3600, "", "localhost", false, false)
+		ctx.SetCookie("refreshToken", *refreshToken, 172800, "", "localhost", false, false)
+
 		if err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, err)
 			return

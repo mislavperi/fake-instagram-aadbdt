@@ -23,6 +23,6 @@ func NewDatabaseConnection(
 	if err != nil {
 		return nil, err
 	}
-	db.AutoMigrate(&models.User{}, &models.Role{}, &models.Package{})
+	db.AutoMigrate(&models.User{}, &models.Role{}, &models.Plan{})
 	return db, nil
 }
