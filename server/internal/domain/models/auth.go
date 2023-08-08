@@ -1,5 +1,7 @@
 package models
 
+import "github.com/golang-jwt/jwt"
+
 type GHCredentials struct {
 	Code string `json:"code"`
 }
@@ -17,8 +19,19 @@ type GHToken struct {
 }
 
 type GHUser struct {
-	Login string `json:"login"`
-	ID    string `json:"id"`
+	Username string `json:"login"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
+}
+
+type GoogleUser struct {
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	FirstName     string `json:"given_name"`
+	LastName      string `json:"family_name"`
+	jwt.StandardClaims
+}
+
+type GoogleToken struct {
+	GoogleJWT string `json:"token"`
 }

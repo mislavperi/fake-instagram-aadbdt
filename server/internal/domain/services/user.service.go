@@ -12,6 +12,9 @@ import (
 
 type UserMapper interface {
 	MapUserToDTO(plan models.Plan) psqlmodels.Plan
+	MapGHUserToDTO(user models.GHUser) psqlmodels.User
+	MapGoogleUserToDTO(user models.GoogleUser) psqlmodels.User
+	MapDTOToUser(user psqlmodels.User) models.User
 }
 
 type UserRepository interface {
@@ -19,6 +22,8 @@ type UserRepository interface {
 	CheckCredentials(username string, password string) error
 	FetchUserInformation(username string) (*psqlmodels.User, error)
 	SetUserPlan(username string, plan psqlmodels.Plan) error
+	AuthenticateGithubUser(psqlmodels.User) error
+	AuthenticateGoogleUser(psqlmodels.User) error
 }
 
 type UserService struct {
@@ -40,12 +45,8 @@ func (s *UserService) GetUserInformation(username string) (*models.User, error) 
 	if err != nil {
 		return nil, err
 	}
-	return &models.User{
-		Username:  user.Username,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
-	}, nil
+	mappedUser := s.userMapper.MapDTOToUser(*user)
+	return &mappedUser, nil
 }
 
 func (s *UserService) Create(firstName string, lastName string, username string, email string, password string) error {
@@ -110,4 +111,31 @@ func (s *UserService) SelectUserPlan(username string, plan models.Plan) error {
 		return nil
 	}
 	return nil
+}
+
+func (s *UserService) AuthenticateGithubUser(user models.GHUser) (*string, *string, error) {
+	mappedUser := s.userMapper.MapGHUserToDTO(user)
+
+	err := s.UserRepository.AuthenticateGithubUser(mappedUser)
+	if err != nil {
+		return nil, nil, err
+	}
+	accessToken, refreshToken, err := s.generateTokenPair(user.Username)
+	if err != nil {
+		return nil, nil, err
+	}
+	return accessToken, refreshToken, nil
+}
+
+func (s *UserService) AuthenticateGoogleUser(user models.GoogleUser) (*string, *string, error) {
+	mappedUser := s.userMapper.MapGoogleUserToDTO(user)
+	err := s.UserRepository.AuthenticateGoogleUser(mappedUser)
+	if err != nil {
+		return nil, nil, err
+	}
+	accessToken, refreshToken, err := s.generateTokenPair(user.Email)
+	if err != nil {
+		return nil, nil, err
+	}
+	return accessToken, refreshToken, nil
 }

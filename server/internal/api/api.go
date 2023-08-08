@@ -54,6 +54,7 @@ func (a *API) registerRoutes(userController *controllers.UserController, planCon
 	authGroup.POST("/register", userController.RegisterUser())
 	authGroup.POST("/login", userController.Login())
 	authGroup.POST("/gh_login", userController.LoginGithub())
+	authGroup.POST("/g_login", userController.LoginGoogle())
 
 	userGroup := a.gin.Group("/user")
 	userGroup.Use(middlewares.JwtTokenCheck())

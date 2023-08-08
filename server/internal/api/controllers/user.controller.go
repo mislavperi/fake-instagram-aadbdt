@@ -5,23 +5,27 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
 	customerrors "github.com/mislavperi/fake-instagram-aadbdt/server/utils/errors"
 )
 
 const (
-	client_id     = "fd9e7705baa36a1a120d"
-	client_secret = "f33505f8e0311cd11c651a71b9cd2ddb04f1edfe"
+	client_id     = "f4a7a59f8e527f183bcf"
+	client_secret = ""
 )
 
 type UserService interface {
 	Create(firstName string, lastName string, username string, email string, password string) error
-	Login(username string, password string) (*string, *string, error)
-	GetUserInformation(username string) (*models.User, error)
-	SelectUserPlan(username string, plan models.Plan) error
+	Login(email string, password string) (*string, *string, error)
+	GetUserInformation(email string) (*models.User, error)
+	SelectUserPlan(email string, plan models.Plan) error
+	AuthenticateGoogleUser(user models.GoogleUser) (*string, *string, error)
+	AuthenticateGithubUser(user models.GHUser) (*string, *string, error)
 }
 
 type UserController struct {
@@ -83,7 +87,7 @@ func (c *UserController) Login() gin.HandlerFunc {
 			ctx.AbortWithError(http.StatusInternalServerError, nil)
 			return
 		}
-		accessToken, refreshToken, err := c.UserService.Login(user.Username, user.Password)
+		accessToken, refreshToken, err := c.UserService.Login(user.Email, user.Password)
 		if err != nil {
 			if customerrors.IsInvalidCredentialsError(err) {
 				ctx.AbortWithError(http.StatusUnauthorized, errors.New("invalid credentials"))
@@ -94,11 +98,6 @@ func (c *UserController) Login() gin.HandlerFunc {
 		}
 		ctx.SetCookie("accessToken", *accessToken, 3600, "", "localhost", false, false)
 		ctx.SetCookie("refreshToken", *refreshToken, 172800, "", "localhost", false, false)
-
-		if err != nil {
-			ctx.AbortWithError(http.StatusBadRequest, err)
-			return
-		}
 
 		ctx.JSON(http.StatusOK, nil)
 	}
@@ -132,6 +131,7 @@ func (c *UserController) LoginGithub() gin.HandlerFunc {
 		}
 		request.Header.Set("Content-Type", "application/json")
 		request.Header.Set("Accept", "application/json")
+
 		resp, err := http.DefaultClient.Do(request)
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
@@ -158,6 +158,76 @@ func (c *UserController) LoginGithub() gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		ctx.JSON(200, ghUser)
+		accessToken, refreshToken, err := c.UserService.AuthenticateGithubUser(ghUser)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		ctx.SetCookie("accessToken", *accessToken, 3600, "/", "localhost", false, true)
+		ctx.SetCookie("refreshToken", *refreshToken, 172800, "/", "localhost", false, true)
+
+		ctx.JSON(http.StatusOK, nil)
+	}
+}
+
+func (c *UserController) LoginGoogle() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var incCreds models.GoogleToken
+		var googleUser models.GoogleUser
+
+		err := ctx.BindJSON(&incCreds)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+
+		}
+		token, err := jwt.ParseWithClaims(
+			incCreds.GoogleJWT,
+			&googleUser,
+			func(t *jwt.Token) (interface{}, error) {
+				resp, err := http.Get("https://www.googleapis.com/oauth2/v1/certs")
+				if err != nil {
+					return nil, err
+				}
+				dat, err := io.ReadAll(resp.Body)
+				if err != nil {
+					return nil, err
+				}
+
+				cemKey := map[string]string{}
+				err = json.Unmarshal(dat, &cemKey)
+				if err != nil {
+					return nil, err
+				}
+				pem, ok := cemKey[fmt.Sprintf("%s", t.Header["kid"])]
+				if !ok {
+					return nil, err
+				}
+				key, err := jwt.ParseRSAPublicKeyFromPEM([]byte(pem))
+				if err != nil {
+					return nil, err
+				}
+				return key, nil
+			},
+		)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		claims, ok := token.Claims.(*models.GoogleUser)
+		if !ok {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		accessToken, refreshToken, err := c.UserService.AuthenticateGoogleUser(*claims)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		ctx.SetCookie("accessToken", *accessToken, 3600, "/", "localhost", false, true)
+		ctx.SetCookie("refreshToken", *refreshToken, 172800, "/", "localhost", false, true)
+
+		ctx.JSON(http.StatusOK, nil)
 	}
 }

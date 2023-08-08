@@ -1,8 +1,10 @@
 package repositories
 
 import (
+	"errors"
+
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
-	"github.com/mislavperi/fake-instagram-aadbdt/server/utils/errors"
+	customerrors "github.com/mislavperi/fake-instagram-aadbdt/server/utils/errors"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -39,7 +41,7 @@ func (r *UserRepository) CheckCredentials(username string, password string) erro
 	}
 	err := bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(password))
 	if err != nil {
-		return errors.NewInvalidCredentialsError(err.Error())
+		return customerrors.NewInvalidCredentialsError(err.Error())
 	}
 	return nil
 }
@@ -59,5 +61,33 @@ func (r *UserRepository) SetUserPlan(username string, plan models.Plan) error {
 	}
 	result.Plan = plan
 	r.Database.Save(&result)
+	return nil
+}
+
+func (r *UserRepository) AuthenticateGithubUser(mappedUser models.User) error {
+	var result *models.User
+	if err := r.Database.First(&result).Where(&models.User{Username: mappedUser.Username}).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		if res := r.Database.Create(&mappedUser); res.Error != nil {
+			return err
+		}
+		return nil
+	}
+	return nil
+}
+
+func (r *UserRepository) AuthenticateGoogleUser(mappedUser models.User) error {
+	var result *models.User
+	if err := r.Database.First(&result).Where(&models.User{Username: mappedUser.Username}).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		if res := r.Database.Create(&mappedUser); res.Error != nil {
+			return err
+		}
+		return nil
+	}
 	return nil
 }
