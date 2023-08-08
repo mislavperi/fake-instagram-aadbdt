@@ -1,106 +1,44 @@
-"use client";
+import LoginForm from "@/components/loginForm";
 
-import * as z from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { cookies } from "next/headers"
+import {redirect} from "next/navigation"
 
-import { useRouter } from 'next/navigation'
-import { useToast } from "@/components/ui/use-toast";
+type User = {
+  firstName: string
+  lastName: string
+  email: string
+  username: string
+}
 
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Toaster } from "@/components/ui/toaster";
-
-import { Input } from "@/components/ui/input";
-
-const formSchema = z.object({
-  username: z.string().min(2, {
-    message: "Username must be at least 2 characters long",
-  }),
-  password: z.string().min(8, {
-    message: "Password has to be at least 8 characters long",
-  }),
-});
-
-export default function Login() {
-  const { toast } = useToast();
-  const { push } = useRouter();
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
-  });
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    const response = await fetch("http://localhost:8080/auth/login", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify({
-        username: values.username,
-        password: values.password,
-      }),
-    });
-    if (!response.ok) {
-      toast({
-        description: response.json(),
-      })
-    }
-    toast({
-      description: "Login was successful",
-    });
-    push("/")
+async function whoami(accessToken: string, refreshToken: string) {
+ const res = await fetch("http://localhost:8080/user/whoami", {
+  method: "GET",
+  headers: {
+    "Accept": "application/json",
+    "Access": accessToken, 
+    "Refresh": refreshToken,
   }
+ })
+
+ if (!res.ok) {
+  return undefined
+ }
+
+ return res.json()
+}
+
+export default async function Login() {
+  const cookieJar = cookies()
+
+  const accessToken = cookieJar.get("accessToken")?.value || ""
+  const refreshToken = cookieJar.get("refreshToken")?.value || ""
+
+  const data: User = await whoami(accessToken, refreshToken)
 
   return (
-    <main className="flex items-center bg-slate-50 h-screen justify-center">
-      <Form {...form} >
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Username</FormLabel>
-                <FormControl>
-                  <Input placeholder="username" {...field} className="w-80" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input placeholder="password" {...field} className="w-80" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <p className="text-xs font-light text-gray-500 p-0 m-0">New here? Click here to register</p>
-          <Button type="submit">Login</Button>
-          
-        </form>
-      </Form>
-      <Toaster />
-    </main>
-  );
+    data === undefined ? 
+    <LoginForm />
+    :
+    redirect("/")
+  )
 }

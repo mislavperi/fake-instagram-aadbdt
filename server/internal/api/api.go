@@ -25,7 +25,7 @@ func NewAPI(userController *controllers.UserController, planController *controll
 			cors.Config{
 				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080"},
 				AllowMethods:     []string{"POST", "GET"},
-				AllowHeaders:     []string{"Content-Type", "Accept", "Authorization"},
+				AllowHeaders:     []string{"Content-Type", "Accept", "Authorization", "Refresh"},
 				AllowCredentials: true,
 			},
 		),
@@ -53,10 +53,12 @@ func (a *API) registerRoutes(userController *controllers.UserController, planCon
 	authGroup := a.gin.Group("/auth")
 	authGroup.POST("/register", userController.RegisterUser())
 	authGroup.POST("/login", userController.Login())
+	authGroup.POST("/gh_login", userController.LoginGithub())
 
 	userGroup := a.gin.Group("/user")
 	userGroup.Use(middlewares.JwtTokenCheck())
 	userGroup.GET("/whoami", userController.Whoami())
+	userGroup.POST("/select", userController.SetUserPlan())
 
 	planGroup := a.gin.Group("/plans")
 	planGroup.GET("/get", planController.GetPlans())

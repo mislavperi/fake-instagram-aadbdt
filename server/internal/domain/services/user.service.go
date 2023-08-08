@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -36,19 +35,8 @@ func NewUserService(userRepository UserRepository, userMapper UserMapper) *UserS
 	}
 }
 
-func (s *UserService) GetUserInformation(token string) (*models.User, error) {
-	var accessClaim models.Claims
-
-	accessToken, err := jwt.ParseWithClaims(token, &accessClaim, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
-		return []byte(SECRET_KEY), nil
-	})
-	if err != nil || !accessToken.Valid {
-		return nil, err
-	}
-	user, err := s.UserRepository.FetchUserInformation(accessToken.Claims.(*models.Claims).Identifier)
+func (s *UserService) GetUserInformation(username string) (*models.User, error) {
+	user, err := s.UserRepository.FetchUserInformation(username)
 	if err != nil {
 		return nil, err
 	}

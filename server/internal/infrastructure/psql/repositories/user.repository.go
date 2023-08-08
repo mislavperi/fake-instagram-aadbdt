@@ -58,6 +58,6 @@ func (r *UserRepository) SetUserPlan(username string, plan models.Plan) error {
 		return err
 	}
 	result.Plan = plan
-	r.Database.Save(result)
+	r.Database.Save(&result)
 	return nil
 }
