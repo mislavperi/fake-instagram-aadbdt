@@ -27,9 +27,8 @@ func (r *UserRepository) Create(firstName string, lastName string, username stri
 		Email:     email,
 		Password:  password,
 	}
-	result := r.Database.Create(&user)
-	if result.Error != nil {
-		return result.Error
+	if err := r.Database.Create(&user).Error; err != nil {
+		return err
 	}
 	return nil
 }
@@ -56,11 +55,7 @@ func (r *UserRepository) FetchUserInformation(username string) (*models.User, er
 
 func (r *UserRepository) SetUserPlan(username string, plan models.Plan) error {
 	var result models.User
-	if err := r.Database.First(&result).Where(&models.User{Username: username}).Error; err != nil {
-		return err
-	}
-	result.Plan = plan
-	r.Database.Save(&result)
+	r.Database.Debug().Model(&result).Where(&models.User{Username: username}).Update("plan_plan_name", plan.PlanName)
 	return nil
 }
 

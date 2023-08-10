@@ -1,8 +1,6 @@
 package mappers
 
 import (
-	"strings"
-
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
 	psqlmodels "github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
 )
@@ -23,12 +21,9 @@ func (m *UserMapper) MapUserToDTO(plan models.Plan) psqlmodels.Plan {
 }
 
 func (m *UserMapper) MapGHUserToDTO(user models.GHUser) psqlmodels.User {
-	splitName := strings.Split(user.Name, " ")
 	return psqlmodels.User{
-		Email:     user.Email,
-		FirstName: splitName[0],
-		LastName:  splitName[1],
-		Username:  user.Username,
+		Email:    user.Email,
+		Username: user.Username,
 	}
 }
 

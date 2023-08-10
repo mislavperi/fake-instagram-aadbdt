@@ -9,7 +9,13 @@ require (
 	gorm.io/gorm v1.25.1
 )
 
-require github.com/gin-contrib/cors v1.4.0
+require (
+	github.com/aws/aws-sdk-go v1.44.319
+	github.com/gin-contrib/cors v1.4.0
+	github.com/lib/pq v1.10.9
+)
+
+require github.com/jmespath/go-jmespath v0.4.0 // indirect
 
 require (
 	github.com/bytedance/sonic v1.9.1 // indirect

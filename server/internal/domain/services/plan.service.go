@@ -2,6 +2,7 @@ package services
 
 import (
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
+	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/services/interfaces"
 	psqlmodels "github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
 )
 
@@ -16,12 +17,14 @@ type PlanMapper interface {
 type PlanService struct {
 	planRepository PlanRepository
 	planMapper     PlanMapper
+	logRepository  interfaces.LogRepository
 }
 
-func NewPlanService(planRepository PlanRepository, planMapper PlanMapper) *PlanService {
+func NewPlanService(planRepository PlanRepository, planMapper PlanMapper, logRepository interfaces.LogRepository) *PlanService {
 	return &PlanService{
 		planRepository: planRepository,
 		planMapper:     planMapper,
+		logRepository:  logRepository,
 	}
 }
 

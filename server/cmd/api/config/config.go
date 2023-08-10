@@ -8,6 +8,9 @@ var Cfg Config
 
 type Config struct {
 	Database DatabaseConfig `split_words:"true"`
+	Aws      AwsConfig      `split_words:"true"`
+	Github   GithubConfig   `split_words:"true"`
+	Auth     AuthConfig     `split_words:"true"`
 }
 
 type DatabaseConfig struct {
@@ -16,6 +19,22 @@ type DatabaseConfig struct {
 	Password string `split_words:"true"`
 	Name     string `split_words:"true"`
 	Port     string `split_words:"true"`
+}
+
+type AwsConfig struct {
+	AccessKeyId     string `split_words:"true"`
+	SecretAccessKey string `split_words:"true"`
+	Bucket          string `split_words:"true"`
+	Region          string `split_words:"true"`
+}
+
+type GithubConfig struct {
+	ClientID     string `split_words:"true"`
+	ClientSecret string `split_words:"true"`
+}
+
+type AuthConfig struct {
+	SecretKey string `split_words:"true"`
 }
 
 func DummyLoad() error {

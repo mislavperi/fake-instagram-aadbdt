@@ -56,7 +56,6 @@ export default function LoginForm() {
         .then((res) => res.json())
         .then((res) => {
           if (res.ok) {
-            console.log("NIGGER")
             router.push("/");
           }
         });

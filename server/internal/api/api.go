@@ -15,7 +15,7 @@ type API struct {
 	port uint
 }
 
-func NewAPI(userController *controllers.UserController, planController *controllers.PlanController, port uint) *API {
+func NewAPI(userController *controllers.UserController, planController *controllers.PlanController, pictureController *controllers.PictureController, port uint) *API {
 	api := &API{
 		gin:  gin.Default(),
 		port: port,
@@ -23,14 +23,14 @@ func NewAPI(userController *controllers.UserController, planController *controll
 	api.gin.Use(
 		cors.New(
 			cors.Config{
-				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080"},
+				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080", "http://localhost:5173"},
 				AllowMethods:     []string{"POST", "GET"},
 				AllowHeaders:     []string{"Content-Type", "Accept", "Authorization", "Refresh"},
 				AllowCredentials: true,
 			},
 		),
 	)
-	api.registerRoutes(userController, planController)
+	api.registerRoutes(userController, planController, pictureController)
 	return api
 }
 
@@ -49,7 +49,7 @@ func (a *API) Start(ctx context.Context) {
 	}
 }
 
-func (a *API) registerRoutes(userController *controllers.UserController, planController *controllers.PlanController) {
+func (a *API) registerRoutes(userController *controllers.UserController, planController *controllers.PlanController, pictureController *controllers.PictureController) {
 	authGroup := a.gin.Group("/auth")
 	authGroup.POST("/register", userController.RegisterUser())
 	authGroup.POST("/login", userController.Login())
@@ -63,4 +63,7 @@ func (a *API) registerRoutes(userController *controllers.UserController, planCon
 
 	planGroup := a.gin.Group("/plans")
 	planGroup.GET("/get", planController.GetPlans())
+
+	pictureGroup := a.gin.Group("/picture")
+	pictureGroup.POST("/upload", pictureController.UploadImage())
 }

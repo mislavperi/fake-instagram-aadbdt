@@ -1,38 +1,67 @@
-"use client";
+import Cookies from "universal-cookie";
 
-import * as z from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-
-import { useToast } from "@/components/ui/use-toast";
-
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Toaster } from "@/components/ui/toaster";
-
-import { Input } from "@/components/ui/input";
 import { useEffect } from "react";
 
+import FormValues from "../../../types/form";
+
+import { useNavigate } from "react-router-dom";
+
+import {
+  FormControl,
+  FormLabel,
+  FormErrorMessage,
+  Button,
+  Input,
+  useToast,
+} from "@chakra-ui/react";
+import { Formik, Form, Field, FieldProps, FormikProps } from "formik";
+import { useUserContext } from "../../../context/userContext";
+import User from "../../../types/user";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 
-const formSchema = z.object({
-  username: z.string().min(2, {
-    message: "Username must be at least 2 characters long",
-  }),
-  password: z.string().min(8, {
-    message: "Password has to be at least 8 characters long",
-  }),
-});
+export default function Login() {
+  const cookieJar = new Cookies();
+  const accessToken = cookieJar.get("accessToken")
+  const refreshToken = cookieJar.get("refreshToken")
+  const navigate = useNavigate();
 
-export default function LoginForm() {
-  const { toast } = useToast();
+  const toast = useToast();
+  const { dispatch } = useUserContext();
+
+  useEffect(() => {
+    fetch("http://localhost:8080/user/whoami", {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: accessToken,
+        Refresh: refreshToken,
+      },
+    }).then((res) => {
+      if (res.ok) {
+        res.json().then((res) => {
+          console.log(res)
+          const user: User = {
+            firstName: res?.firstName,
+            lastName: res?.lastName,
+            email: res.email,
+            username: res.username,
+            pictureURI: res?.pictureURI,
+            plan: res?.plan,
+          };
+
+          dispatch({
+            type: "UPDATE_USER",
+            payload: user,
+          });
+          console.log(user.plan.planName )
+          if (user.plan.planName === "" ) {
+            navigate("/welcome")
+          }
+        });
+        navigate("/upload");
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const hasCode = window.location.href.includes("?code=");
@@ -49,89 +78,91 @@ export default function LoginForm() {
         body: JSON.stringify({
           code: code,
         }),
-      })
-        .then((res) => res.json())
-        .then((res) => {
-          if (res.ok) {
-            console.log("NIGGER")
-            router.push("/");
-          }
-        });
+      }).then((res) => {
+        if (res.ok) {
+          res.json().then((_) => {
+            navigate("/home");
+          });
+        }
+      });
     }
   }, []);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
-  });
+  const initialValues = {
+    username: "",
+    password: "",
+  };
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    const response = await fetch("http://localhost:8080/auth/login", {
+  const validateUsername = (value: string) => {
+    let error;
+    if (!value || value.length < 2) {
+      error = "Username must have at least 2 characters";
+    }
+    return error;
+  };
+
+  const onSubmit = (values: FormValues) => {
+    fetch("http://localhost:8080/auth/login", {
       method: "POST",
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        "Accept": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify({
         username: values.username,
         password: values.password,
       }),
-    });
-    if (!response.ok) {
-      toast({
-        description: response.json(),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          toast({
+            description: "error",
+          });
+          return;
+        }
+        res.json();
+      })
+      .then((_) => {
+        toast({ description: "Success" });
+        navigate("/home");
       });
-    } else {
-      toast({
-        description: "Login was successful",
-      });
-      router.push("/");
-    }
-  }
+  };
 
-  return (
+  return 1 == 1 ? (
     <GoogleOAuthProvider clientId="1004370425511-p05kgqo2ot4b90icjda6t1272cpuso0d.apps.googleusercontent.com">
-      <main className="flex items-center bg-slate-50 h-screen justify-center">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
+      <Formik initialValues={initialValues} onSubmit={onSubmit}>
+        {(props: FormikProps<FormValues>) => (
+          <Form>
+            <Field name="username" validate={validateUsername}>
+              {(fieldProps: FieldProps<string>) => (
+                <FormControl
+                  id="username"
+                  isInvalid={!!props.errors.username && props.touched.username}
+                >
                   <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input placeholder="username" {...field} className="w-80" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                  <Input {...fieldProps.field} type="text" />
+                  <FormErrorMessage>{props.errors.username}</FormErrorMessage>
+                </FormControl>
               )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
+            </Field>
+
+            <Field name="password">
+              {(fieldProps: FieldProps<string>) => (
+                <FormControl
+                  id="password"
+                  mt={4}
+                  isInvalid={!!props.errors.password && props.touched.password}
+                >
                   <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input placeholder="password" {...field} className="w-80" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                  <Input {...fieldProps.field} type="password" />
+                  <FormErrorMessage>{props.errors.password}</FormErrorMessage>
+                </FormControl>
               )}
-            />
-            <p className="text-xs font-light text-gray-500 p-0 m-0">
-              New here? Click here to register
-            </p>
-            <Button type="submit">Login</Button>
-            <Button asChild>
-              <Link href="https://github.com/login/oauth/authorize?client_id=f4a7a59f8e527f183bcf">
-                Login with Github
-              </Link>
+            </Field>
+
+            <Button mt={4} colorScheme="blue" type="submit">
+              Log In
             </Button>
             <GoogleLogin
               onSuccess={(credentialResponse) => {
@@ -139,30 +170,26 @@ export default function LoginForm() {
                   method: "POST",
                   credentials: "include",
                   headers: {
-                    "Accept": "application/json",
+                    Accept: "application/json",
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
                     token: credentialResponse.credential,
                   }),
                 })
-                  .then((res) => res.json())
-                  .then((res) => {
-                    if (res.ok) {
-                      router.push("/");
-                    }
-                  }
-                    
-                  );
               }}
               onError={() => {
                 console.log("Login Failed");
               }}
             />
-          </form>
-        </Form>
-        <Toaster />
-      </main>
+            <Button>
+              <a href="https://github.com/login/oauth/authorize?client_id=f4a7a59f8e527f183bcf">
+                Login with Github
+              </a>
+            </Button>
+          </Form>
+        )}
+      </Formik>
     </GoogleOAuthProvider>
-  );
+  ) : undefined;
 }

@@ -58,7 +58,7 @@ func JwtTokenCheck() gin.HandlerFunc {
 						return
 					}
 
-					ctx.SetCookie("accessToken", accessToken, 3600, "/", "localhost", false, true)
+					ctx.SetCookie("accessToken", accessToken, 3600, "/", "localhost", false, false)
 
 					refreshExpirationTime := time.Now().Add(5 * time.Minute).Unix()
 					refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, models.Claims{
@@ -72,12 +72,13 @@ func JwtTokenCheck() gin.HandlerFunc {
 						ctx.AbortWithStatus(http.StatusInternalServerError)
 						return
 					}
-					ctx.SetCookie("refreshToken", refreshToken, 172800, "/", "localhost", false, true)
-					ctx.Header("Identifier", accessClaim.Identifier)
+					ctx.SetCookie("refreshToken", refreshToken, 172800, "/", "localhost", false, false)
+					ctx.Request.Header.Add("Identifier", accessClaim.Identifier)
 					ctx.Next()
 					return
 				}
 			}
+
 			accessClaims, ok := accessToken.Claims.(*models.Claims)
 			if !ok {
 				ctx.AbortWithStatus(http.StatusUnauthorized)
@@ -85,7 +86,7 @@ func JwtTokenCheck() gin.HandlerFunc {
 			}
 
 			if time.Until(time.Unix(accessClaims.ExpiresAt, 0)) > 15*time.Second {
-				ctx.Header("Identifier", accessClaim.Identifier)
+				ctx.Request.Header.Add("Identifier", accessClaim.Identifier)
 				ctx.Next()
 				return
 			}
@@ -122,7 +123,7 @@ func JwtTokenCheck() gin.HandlerFunc {
 					return
 				}
 
-				ctx.SetCookie("accessToken", accessToken, 3600, "/", "localhost", false, true)
+				ctx.SetCookie("accessToken", accessToken, 3600, "/", "localhost", false, false)
 
 				refreshExpirationTime := time.Now().Add(5 * time.Minute).Unix()
 				refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, models.Claims{
@@ -136,7 +137,7 @@ func JwtTokenCheck() gin.HandlerFunc {
 					ctx.AbortWithStatus(http.StatusInternalServerError)
 					return
 				}
-				ctx.SetCookie("refreshToken", refreshToken, 172800, "/", "localhost", false, true)
+				ctx.SetCookie("refreshToken", refreshToken, 172800, "/", "localhost", false, false)
 				ctx.Header("Identifier", accessClaim.Identifier)
 				ctx.Next()
 				return
