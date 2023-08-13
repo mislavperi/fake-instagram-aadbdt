@@ -4,11 +4,14 @@ import "gorm.io/gorm"
 
 type User struct {
 	gorm.Model
+	ID        int `gorm:"primary_key"`
 	FirstName string
 	LastName  string
 	Username  string
 	Password  string
 	Email     string
-	Role      Role `gorm:"embedded;embeddedPrefix:role_"`
-	Plan      Plan `gorm:"embedded;embeddedPrefix:plan_"`
+	RoleID    *int64
+	Role      *Role
+	PlanID    *int64
+	Plan      *Plan
 }

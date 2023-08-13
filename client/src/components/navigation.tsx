@@ -6,6 +6,7 @@ import {
   useColorModeValue,
   Stack,
   Text,
+  HStack
 } from "@chakra-ui/react";
 import { Outlet } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
@@ -21,9 +22,15 @@ const Links: NavLink[] = [
     title: "Home",
     path: "/home",
   },
+  {
+    title: "Upload image",
+    path: "/upload"
+  }
 ];
 
 const NavLink = ({ link }: { link: NavLink }) => {
+  const navigate = useNavigate();
+
   return (
     <Box
       as="a"
@@ -34,8 +41,11 @@ const NavLink = ({ link }: { link: NavLink }) => {
         textDecoration: "none",
         bg: useColorModeValue("gray.200", "gray.700"),
       }}
+      onClick={() => navigate(link.path)}
     >
+      <Text>
       {link.title}
+        </Text>
     </Box>
   );
 };
@@ -53,14 +63,14 @@ export default function Simple() {
         align="center"
         py={5}
       >
-        <Box>
+        <HStack>
           {Links.map((link: NavLink) => {
             return <NavLink link={link} />;
           })}
-        </Box>
+        </HStack>
         <Stack direction="row" align="center">
           {user.username !== "" ? (
-            <Text>{user.username}</Text>
+            <Text onClick={() => navigate("/profile")}>{user.username}</Text>
           ) : (
             <Button onClick={() => navigate("/login")}>Log in</Button>
           )}

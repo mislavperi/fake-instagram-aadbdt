@@ -1,68 +1,116 @@
-import { Flex, Text, HStack } from "@chakra-ui/react";
-import {  useUserContext } from "../../context/userContext";
+import {
+  Flex,
+  Text,
+  HStack,
+  Container,
+  Input,
+  Button,
+  Wrap,
+  WrapItem,
+} from "@chakra-ui/react";
+import { useState, useEffect } from "react";
+import Picture from "../../types/picture";
+import { RangeDatepicker } from "chakra-dayzed-datepicker";
+import InputTag from "../../components/inputTag";
+import Image from "../../components/image"
+
+interface Filter {
+  [key: string]: any;
+  title?: string;
+  description?: string;
+  dateRange?: DateRange;
+  hashtags?: string[];
+  user?: string;
+}
 
 export default function Home() {
-  const { user } = useUserContext()
+  const [pictures, setPictures] = useState<Picture[]>([]);
+  const [hashtags, setHashtags] = useState<string[]>([]);
+  const [filter, setFilter] = useState<Filter>({});
+  const [selectedDates, setSelectedDates] = useState<Date[]>([
+    new Date(),
+    new Date(),
+  ]);
 
-  const dummyImage: {
-    title: string;
-    description: string;
-    url: string;
-    dateTime: string;
-    hashtags: string[];
-  }[] = [
-    {
-      title: "image",
-      description: "image",
-      url: "https://images.unsplash.com/photo-1638486071992-536e48c8fa3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2072&q=80",
-      dateTime: "01.01.2021",
-      hashtags: ["#asgag", "#asgagsaga"],
-    },
-  ];
+  const getPictures = () => {
+    const queryParam: string = JSON.stringify(filter);
 
-  const Image = ({
-    title,
-    description,
-    url,
-    dateTime,
-    hashtags,
-  }: {
-    title: string;
-    description: string;
-    url: string;
-    dateTime: string;
-    hashtags: string[];
-  }) => {
-    return (
-      <Flex direction="column" bg="red" width="fit-content" border="1px solid black">
-        <img src={url} alt={description} width={300} />
-        <Text fontSize="16px" p={0} m={0}>{title}</Text>
-        <Text fontSize="16px" p={0} m={0}>{description}</Text>
-        <Text fontSize="12px" p={0} m={0}>{dateTime}</Text>
-        <HStack>
-          {hashtags.map(hashtag => {
-            return (
-              <Text fontSize="12px" p={0} m={0}>{hashtag}</Text>
-            )
-          })}
-          </HStack>
-      </Flex>
-    );
+    fetch(`http://localhost:8080/picture/get?filter=${queryParam}`)
+      .then((res) => res.json())
+      .then((res) => setPictures(res));
+  };
+  useEffect(() => {
+    getPictures();
+  }, [true]);
+
+  const updateFilter = (value: string, field: string) => {
+    const newFilter: Filter = filter;
+    if (value == "") {
+      delete newFilter[field];
+    } else {
+      newFilter[field] = value;
+    }
+    console.log(newFilter);
+    setFilter(newFilter);
   };
 
   return (
     <main>
-      <div>
-        {dummyImage.map((image) => (
-          <Image
-            title={image.title}
-            description={image.description}
-            url={image.url}
-            dateTime={image.dateTime}
-            hashtags={image.hashtags}
-          />
-        ))}
-      </div>
+      <Container>
+        <Wrap>
+          <WrapItem>
+            <HStack>
+              <Text>Title: </Text>
+              <Input onChange={(e) => updateFilter(e.target.value, "title")} />
+            </HStack>
+          </WrapItem>
+          <WrapItem>
+            <HStack>
+              <Text>Description: </Text>
+              <Input onChange={(e) => updateFilter(e.target.value, "title")} />
+            </HStack>
+          </WrapItem>
+          <WrapItem>
+            <HStack>
+              <Text>User</Text>
+              <Input onChange={(e) => updateFilter(e.target.value, "title")} />
+            </HStack>
+          </WrapItem>
+          <WrapItem>
+            <HStack>
+              <Text>Select date range: </Text>
+              <RangeDatepicker
+                selectedDates={selectedDates}
+                onDateChange={setSelectedDates}
+              />
+            </HStack>
+          </WrapItem>
+        </Wrap>
+        <HStack>
+          <Text>Hashtags:</Text>
+          <InputTag tags={hashtags} setTags={setHashtags} />
+        </HStack>
+        <HStack>
+          <Button onClick={getPictures}>Apply filter</Button>
+        </HStack>
+      </Container>
+
+      <Wrap>
+        <WrapItem>
+          {pictures.length !== 0
+            ? pictures.map((image) => (
+                <Image
+                  key={image.id}
+                  title={image.title}
+                  description={image.description}
+                  url={image.pictureURI}
+                  dateTime={image.uploadDateTime}
+                  hashtags={image.hashtags}
+                />
+              ))
+            : null}
+        </WrapItem>
+      </Wrap>
     </main>
   );
 }

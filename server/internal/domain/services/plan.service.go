@@ -6,21 +6,18 @@ import (
 	psqlmodels "github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
 )
 
-type PlanRepository interface {
-	GetPlans() ([]psqlmodels.Plan, error)
-}
-
 type PlanMapper interface {
 	MapPlans(plans []psqlmodels.Plan) []models.Plan
+	MapPlan(plan *psqlmodels.Plan) models.Plan
 }
 
 type PlanService struct {
-	planRepository PlanRepository
+	planRepository interfaces.PlanRepository
 	planMapper     PlanMapper
 	logRepository  interfaces.LogRepository
 }
 
-func NewPlanService(planRepository PlanRepository, planMapper PlanMapper, logRepository interfaces.LogRepository) *PlanService {
+func NewPlanService(planRepository interfaces.PlanRepository, planMapper PlanMapper, logRepository interfaces.LogRepository) *PlanService {
 	return &PlanService{
 		planRepository: planRepository,
 		planMapper:     planMapper,
@@ -35,4 +32,12 @@ func (s *PlanService) GetPlans() ([]models.Plan, error) {
 	}
 	mappedPlans := s.planMapper.MapPlans(plans)
 	return mappedPlans, nil
+}
+
+func (s *PlanService) GetPlan(planName string) (*psqlmodels.Plan, error) {
+	plan, err := s.planRepository.GetPlan(planName)
+	if err != nil {
+		return nil, err
+	}
+	return plan, nil
 }

@@ -16,19 +16,17 @@ func Api() (*api.API, error) {
 
 	logRepository := repositories.NewLogRepository(db)
 	s3Repository := repository.NewS3Repository(config.Cfg.Aws.Bucket, config.Cfg.Aws.Region, config.Cfg.Aws.AccessKeyId, config.Cfg.Aws.SecretAccessKey, "")
-
-	userMapper := mappers.NewUserMapper()
-	userRepository := repositories.NewUserRepository(db)
-	userService := services.NewUserService(userRepository, userMapper, logRepository, config.Cfg.Github.ClientID, config.Cfg.Github.ClientSecret, config.Cfg.Auth.SecretKey)
-	userController := controllers.NewUserController(userService)
-
-	planMapper := mappers.NewPlanMapper()
 	planRepository := repositories.NewPlanRepository(db)
+	planMapper := mappers.NewPlanMapper()
 	planService := services.NewPlanService(planRepository, planMapper, logRepository)
 	planController := controllers.NewPlanController(planService)
-
-	pictureRepository := repositories.NewPictureRepository(db, s3Repository)
-	pictureService := services.NewPictureService(pictureRepository, logRepository)
+	userMapper := mappers.NewUserMapper()
+	userRepository := repositories.NewUserRepository(db)
+	userService := services.NewUserService(userRepository, userMapper, planService, logRepository, config.Cfg.Github.ClientID, config.Cfg.Github.ClientSecret, config.Cfg.Auth.SecretKey)
+	userController := controllers.NewUserController(userService)
+	pictureMapper := mappers.NewPictureMapper()
+	pictureRepository := repositories.NewPictureRepository(db)
+	pictureService := services.NewPictureService(userService, pictureRepository, pictureMapper, logRepository, s3Repository)
 	pictureController := controllers.NewPictureController(pictureService)
 
 	if err != nil {

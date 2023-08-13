@@ -12,16 +12,17 @@ import (
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/services/interfaces"
 	psqlmodels "github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
-	"github.com/mislavperi/fake-instagram-aadbdt/server/utils/enums"
+	enums "github.com/mislavperi/fake-instagram-aadbdt/server/utils/enums/action"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserMapper interface {
 	MapUserToDTO(plan models.Plan) psqlmodels.Plan
-	MapGHUserToDTO(user models.GHUser) psqlmodels.User
-	MapGoogleUserToDTO(user models.GoogleUser) psqlmodels.User
+	MapGHUserToDTO(user models.GHUser, plan psqlmodels.Plan) psqlmodels.User
+	MapGoogleUserToDTO(user models.GoogleUser, plan psqlmodels.Plan) psqlmodels.User
 	MapDTOToUser(user psqlmodels.User) models.User
+	MapUserToDTOO(user models.User) psqlmodels.User
 }
 
 type UserRepository interface {
@@ -33,9 +34,16 @@ type UserRepository interface {
 	AuthenticateGoogleUser(psqlmodels.User) error
 }
 
+type PlanDomain interface {
+	GetPlan(planName string) (*psqlmodels.Plan, error)
+}
+
 type UserService struct {
+	planService PlanDomain
+
+	userMapper UserMapper
+
 	UserRepository UserRepository
-	userMapper     UserMapper
 	logRepository  interfaces.LogRepository
 
 	ghClientId     string
@@ -43,17 +51,20 @@ type UserService struct {
 	secretKey      string
 }
 
-const SECRET_KEY = "f83edb0a3b4e9547fd6fbd981513bce0d604472c547daaeed8907a78c5793671"
-
-func NewUserService(userRepository UserRepository, userMapper UserMapper, logRepository interfaces.LogRepository, ghClientId string, ghClientSecret string, secretKey string) *UserService {
+func NewUserService(userRepository UserRepository, userMapper UserMapper, planService PlanDomain, logRepository interfaces.LogRepository, ghClientId string, ghClientSecret string, secretKey string) *UserService {
 	return &UserService{
 		UserRepository: userRepository,
 		userMapper:     userMapper,
+		planService:    planService,
 		logRepository:  logRepository,
 		ghClientId:     ghClientId,
 		ghClientSecret: ghClientSecret,
 		secretKey:      secretKey,
 	}
+}
+
+func (s *UserService) MapUserToDTO(user models.User) psqlmodels.User {
+	return s.userMapper.MapUserToDTOO(user)
 }
 
 func (s *UserService) GetUserInformation(username string) (*models.User, error) {
@@ -108,7 +119,7 @@ func (s *UserService) generateTokenPair(username string) (*string, *string, erro
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: accessExpirationTime,
 		},
-	}).SignedString([]byte(SECRET_KEY))
+	}).SignedString([]byte(s.secretKey))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -119,7 +130,7 @@ func (s *UserService) generateTokenPair(username string) (*string, *string, erro
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: refreshExpirationTime,
 		},
-	}).SignedString([]byte(SECRET_KEY))
+	}).SignedString([]byte(s.secretKey))
 	if err != nil {
 		return nil, nil, nil
 	}
@@ -188,9 +199,12 @@ func (s *UserService) AuthenticateGithubUser(credentials models.GHCredentials) (
 	if err != nil || ghUser.Username == "" {
 		return nil, nil, err
 	}
+	mappedPlan, err := s.planService.GetPlan("FREE")
 
-	mappedUser := s.userMapper.MapGHUserToDTO(ghUser)
-
+	mappedUser := s.userMapper.MapGHUserToDTO(ghUser, *mappedPlan)
+	if err != nil {
+		return nil, nil, err
+	}
 	err = s.UserRepository.AuthenticateGithubUser(mappedUser)
 	if err != nil {
 		return nil, nil, err
@@ -243,8 +257,11 @@ func (s *UserService) AuthenticateGoogleUser(credentials models.GoogleToken) (*s
 	if !ok {
 		return nil, nil, err
 	}
-
-	mappedUser := s.userMapper.MapGoogleUserToDTO(*claims)
+	mappedPlan, err := s.planService.GetPlan("FREE")
+	if err != nil {
+		return nil, nil, err
+	}
+	mappedUser := s.userMapper.MapGoogleUserToDTO(*claims, *mappedPlan)
 	err = s.UserRepository.AuthenticateGoogleUser(mappedUser)
 	if err != nil {
 		return nil, nil, err

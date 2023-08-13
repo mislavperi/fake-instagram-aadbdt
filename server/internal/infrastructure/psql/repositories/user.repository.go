@@ -47,15 +47,23 @@ func (r *UserRepository) CheckCredentials(username string, password string) erro
 
 func (r *UserRepository) FetchUserInformation(username string) (*models.User, error) {
 	var result models.User
-	if err := r.Database.First(&result).Where(&models.User{Username: username}).Error; err != nil {
+	if err := r.Database.Preload("Plan").Preload("Role").First(&result).Where(&models.User{Username: username}).Error; err != nil {
 		return nil, err
 	}
 	return &result, nil
 }
 
 func (r *UserRepository) SetUserPlan(username string, plan models.Plan) error {
-	var result models.User
-	r.Database.Debug().Model(&result).Where(&models.User{Username: username}).Update("plan_plan_name", plan.PlanName)
+	var user models.User
+	result := r.Database.Preload("Plan").Where("username=?", username).First(&user)
+	if result.Error != nil {
+		return result.Error
+	}
+	user.Plan = &plan
+	result = r.Database.Save(&user)
+	if result.Error != nil {
+		return result.Error
+	}
 	return nil
 }
 
@@ -65,7 +73,7 @@ func (r *UserRepository) AuthenticateGithubUser(mappedUser models.User) error {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
-		if res := r.Database.Create(&mappedUser); res.Error != nil {
+		if err = r.Database.Create(&mappedUser).Error; err != nil {
 			return err
 		}
 		return nil

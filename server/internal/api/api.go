@@ -66,4 +66,9 @@ func (a *API) registerRoutes(userController *controllers.UserController, planCon
 
 	pictureGroup := a.gin.Group("/picture")
 	pictureGroup.POST("/upload", pictureController.UploadImage())
+	pictureGroup.GET("/get", pictureController.GetImages())
+	pictureGroup.GET("/userImages", pictureController.GetUserImages())
+	pictureGroup.GET("/info", pictureController.GetPictureByID())
+	pictureGroup.POST("/update", pictureController.UpdateImage())
+
 }

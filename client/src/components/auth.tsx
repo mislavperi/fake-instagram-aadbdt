@@ -7,12 +7,12 @@ const Auth = ({ children }: { children: any }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user.username) {
-      if (user.plan.planName) {
+    if (!user.username) {
+      if (!user.plan.planName) {
         navigate("/welcome");
+      } else {
+        navigate("/home");
       }
-    } else {
-      navigate("/home");
     }
   }, []);
 

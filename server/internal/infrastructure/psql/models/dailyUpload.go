@@ -4,7 +4,10 @@ import "gorm.io/gorm"
 
 type DailyUpload struct {
 	gorm.Model
+	ID           int64 `gorm:"primary_key"`
 	UploadSizeKb uint64
-	Picture      Picture `gorm:"embedded;embeddedPrefix:picture_"`
-	User         User    `gorm:"embedded;embeddedPrefix:user_"`
+	PictureID    int64
+	Picture      Picture
+	UserID       int64
+	User         User
 }

@@ -24,3 +24,12 @@ func (m *PlanMapper) MapPlans(plans []psqlmodels.Plan) []models.Plan {
 	}
 	return mappedPlans
 }
+
+func (m *PlanMapper) MapPlan(plan *psqlmodels.Plan) models.Plan {
+	return models.Plan{
+		PlanName:          plan.PlanName,
+		DailyUploadLimit:  plan.DailyUploadLimit,
+		UploadLimitSizeKb: plan.UploadLimitSizeKb,
+		Cost:              plan.Cost,
+	}
+}

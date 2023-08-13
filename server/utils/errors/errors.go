@@ -32,3 +32,17 @@ func WrapInvalidCredentialsError(err error) error {
 func IsInvalidCredentialsError(err error) bool {
 	return errors.Is(err, errInvalidCredentials)
 }
+
+var errDisallowedResource = errors.New("disallowed resource")
+
+func NewDisallowedResourceError(msg string) error {
+	return WrapDisallowedResourceError(errors.New(msg))
+}
+
+func WrapDisallowedResourceError(err error) error {
+	return fmt.Errorf("%w: %s", errDisallowedResource, err.Error())
+}
+
+func IsDisallowedResourceError(err error) bool {
+	return errors.Is(err, errDisallowedResource)
+}

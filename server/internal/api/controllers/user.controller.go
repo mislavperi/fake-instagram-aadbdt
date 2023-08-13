@@ -9,11 +9,6 @@ import (
 	customerrors "github.com/mislavperi/fake-instagram-aadbdt/server/utils/errors"
 )
 
-const (
-	client_id     = "f4a7a59f8e527f183bcf"
-	client_secret = "7d5ec2c82ebfd99f412ea4a71addb2e45b98d494"
-)
-
 type UserService interface {
 	Create(firstName string, lastName string, username string, email string, password string) error
 	Login(email string, password string) (*string, *string, error)

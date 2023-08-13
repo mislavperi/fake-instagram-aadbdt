@@ -39,7 +39,6 @@ export default function Login() {
     }).then((res) => {
       if (res.ok) {
         res.json().then((res) => {
-          console.log(res)
           const user: User = {
             firstName: res?.firstName,
             lastName: res?.lastName,
@@ -53,12 +52,11 @@ export default function Login() {
             type: "UPDATE_USER",
             payload: user,
           });
-          console.log(user.plan.planName )
           if (user.plan.planName === "" ) {
             navigate("/welcome")
           }
         });
-        navigate("/upload");
+        navigate("/home");
       }
     });
   }, []);
@@ -81,7 +79,7 @@ export default function Login() {
       }).then((res) => {
         if (res.ok) {
           res.json().then((_) => {
-            navigate("/home");
+            toast({description: "Sucess"})
           });
         }
       });
@@ -125,7 +123,6 @@ export default function Login() {
       })
       .then((_) => {
         toast({ description: "Success" });
-        navigate("/home");
       });
   };
 
