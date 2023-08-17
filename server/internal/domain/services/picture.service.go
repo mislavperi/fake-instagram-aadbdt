@@ -3,12 +3,14 @@ package services
 import (
 	"bytes"
 	"image"
+	"os"
 	"strconv"
 
 	"image/jpeg"
 	"image/png"
 	"mime/multipart"
 
+	"github.com/disintegration/gift"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/services/interfaces"
 	psqlmodels "github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
@@ -17,7 +19,8 @@ import (
 )
 
 type PictureService struct {
-	userService *UserService
+	userService        *UserService
+	dailyUploadService interfaces.DailyUploadService
 
 	pictureRepository PictureRepository
 	pictureMapper     PictureMapper
@@ -32,34 +35,31 @@ type PictureMapper interface {
 }
 type S3Repository interface {
 	UploadToBucket(file bytes.Buffer, fileExt string) (*string, error)
+	DownloadImage(imageUrl string) ([]byte, error)
 }
 
 type PictureRepository interface {
-	UploadPicture(string, description string, hashtags []string, user psqlmodels.User, pictureURI string) error
+	UploadPicture(string, description string, hashtags []string, userID int, pictureURI string) (*int64, error)
 	GetImages(filter models.Filter) ([]*psqlmodels.Picture, error)
 	GetUserImages(userID int) ([]*psqlmodels.Picture, error)
 	GetImageByID(id int) (*psqlmodels.Picture, error)
 	UpdateImage(id int, description string, hashtags []string, userID int, userRole string) error
 }
 
-func NewPictureService(userService *UserService, pictureRepository PictureRepository, pictureMapper PictureMapper, logRepository interfaces.LogRepository, s3Repository S3Repository) *PictureService {
+func NewPictureService(userService *UserService, dailyUploadService interfaces.DailyUploadService, pictureRepository PictureRepository, pictureMapper PictureMapper, logRepository interfaces.LogRepository, s3Repository S3Repository) *PictureService {
 	return &PictureService{
 		pictureRepository: pictureRepository,
 		pictureMapper:     pictureMapper,
 
-		userService: userService,
+		dailyUploadService: dailyUploadService,
+		userService:        userService,
 
 		logRepository: logRepository,
 		s3Repository:  s3Repository,
 	}
 }
 
-func (s *PictureService) UploadImage(file multipart.File, title string, description string, hashtags []string, username string, height string, width string, fileExt string) error {
-	user, err := s.userService.GetUserInformation(username)
-	if err != nil {
-		return err
-	}
-	mappedUser := s.userService.MapUserToDTO(*user)
+func (s *PictureService) UploadImage(file multipart.File, title string, description string, hashtags []string, id int, height string, width string, fileExt string) error {
 	decodedImage, _, err := image.Decode(file)
 	if err != nil {
 		return err
@@ -99,7 +99,12 @@ func (s *PictureService) UploadImage(file multipart.File, title string, descript
 		return err
 	}
 
-	err = s.pictureRepository.UploadPicture(title, description, hashtags, mappedUser, *pictureURI)
+	newPictureId, err := s.pictureRepository.UploadPicture(title, description, hashtags, id, *pictureURI)
+	if err != nil {
+		return err
+	}
+
+	err = s.dailyUploadService.InsertLog(int64(id), *newPictureId, uint64(len(encodedImage.Bytes())/1024))
 	if err != nil {
 		return err
 	}
@@ -116,13 +121,8 @@ func (s *PictureService) GetImages(filter models.Filter) ([]models.Picture, erro
 	return mappedPictures, nil
 }
 
-func (s *PictureService) GetUserImages(username string) ([]models.Picture, error) {
-	user, err := s.userService.GetUserInformation(username)
-	if err != nil {
-		return nil, err
-	}
-
-	pictures, err := s.pictureRepository.GetUserImages(user.ID)
+func (s *PictureService) GetUserImages(id int) ([]models.Picture, error) {
+	pictures, err := s.pictureRepository.GetUserImages(id)
 	if err != nil {
 		return nil, err
 	}
@@ -139,8 +139,8 @@ func (s *PictureService) GetImageByID(id int) (*models.Picture, error) {
 	return &mappedImage, nil
 }
 
-func (s *PictureService) UpdateImageInformation(imageID int, description string, hashtags []string, username string) error {
-	user, err := s.userService.GetUserInformation(username)
+func (s *PictureService) UpdateImageInformation(imageID int, description string, hashtags []string, userID int) error {
+	user, err := s.userService.GetUserInformation(userID)
 	if err != nil {
 		return err
 	}
@@ -149,4 +149,57 @@ func (s *PictureService) UpdateImageInformation(imageID int, description string,
 		return err
 	}
 	return nil
+}
+
+func (s *PictureService) GetEditedImage(imageID int, height int32, width int32, format string, sepia float32, blur float32) (*bytes.Buffer, error) {
+	imageObject, err := s.pictureRepository.GetImageByID(imageID)
+	if err != nil {
+		return nil, err
+	}
+
+	img, err := s.s3Repository.DownloadImage(imageObject.PictureURI)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedImg, _, err := image.Decode(bytes.NewReader(img))
+	if err != nil {
+		return nil, err
+	}
+
+	g := gift.New()
+
+	if height != 0 && width != 0 {
+		g.Add(gift.Resize(int(width), int(height), gift.LanczosResampling))
+	}
+
+	if sepia != 0 {
+		g.Add(gift.Sepia(sepia * 100))
+	}
+
+	if blur != 0 {
+		g.Add(gift.GaussianBlur(blur))
+	}
+
+	dst := image.NewRGBA(g.Bounds(decodedImg.Bounds()))
+	var encodedImage bytes.Buffer
+
+	g.Draw(dst, decodedImg)
+
+	switch format {
+	case "jpeg":
+		err = jpeg.Encode(&encodedImage, dst, &jpeg.Options{})
+	case "bmp":
+		err = bmp.Encode(&encodedImage, dst)
+	case "png":
+		err = png.Encode(&encodedImage, dst)
+	default:
+		err = jpeg.Encode(&encodedImage, dst, &jpeg.Options{})
+	}
+	if err != nil {
+		return nil, err
+	}
+	os.WriteFile("./image.jpeg", encodedImage.Bytes(), 0777)
+
+	return &encodedImage, nil
 }

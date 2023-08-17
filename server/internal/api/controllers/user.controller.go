@@ -1,8 +1,11 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
@@ -11,11 +14,14 @@ import (
 
 type UserService interface {
 	Create(firstName string, lastName string, username string, email string, password string) error
-	Login(email string, password string) (*string, *string, error)
-	GetUserInformation(email string) (*models.User, error)
-	SelectUserPlan(email string, plan models.Plan) error
+	Login(username string, password string) (*string, *string, error)
+	GetUserInformation(id int) (*models.User, error)
+	SelectUserPlan(id int, plan models.Plan) error
 	AuthenticateGoogleUser(credentials models.GoogleToken) (*string, *string, error)
 	AuthenticateGithubUser(credentials models.GHCredentials) (*string, *string, error)
+	GetAllUsers() ([]models.User, error)
+	InsertAdminPlanChange(adminID int, userID int, planID int) error
+	GetUserLogs(userID int) ([]models.Log, error)
 }
 
 type UserController struct {
@@ -30,9 +36,16 @@ func NewUserController(userService UserService) *UserController {
 
 func (c *UserController) Whoami() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		user, err := c.UserService.GetUserInformation(ctx.GetHeader("Identifier"))
+		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		user, err := c.UserService.GetUserInformation(identifier)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
 		}
 		ctx.JSON(http.StatusOK, user)
 	}
@@ -45,7 +58,46 @@ func (c *UserController) SetUserPlan() gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		err := c.UserService.SelectUserPlan(ctx.GetHeader("Identifier"), plan)
+
+		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		err = c.UserService.SelectUserPlan(identifier, plan)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		ctx.JSON(http.StatusOK, nil)
+	}
+}
+
+func (c *UserController) AdminUserPlanChange() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		userID := ctx.Query("id")
+		planID := ctx.Query("planId")
+
+		userIDInt, err := strconv.Atoi(userID)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		planIDInt, err := strconv.Atoi(planID)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		adminID, err := strconv.Atoi(ctx.GetHeader("Identifier"))
+		if err != nil {
+			fmt.Println(err)
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		err = c.UserService.InsertAdminPlanChange(adminID, userIDInt, planIDInt)
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 			return
@@ -122,5 +174,32 @@ func (c *UserController) LoginGoogle() gin.HandlerFunc {
 		ctx.SetCookie("refreshToken", *refreshToken, 172800, "/", "localhost", false, true)
 
 		ctx.JSON(http.StatusOK, nil)
+	}
+}
+
+func (c *UserController) GetAllUsers() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		users, err := c.UserService.GetAllUsers()
+		if err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		ctx.JSON(http.StatusOK, users)
+	}
+}
+
+func (c *UserController) GetUserLogs() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var userID int
+		incReq := ctx.Query("id")
+		err := json.Unmarshal([]byte(incReq), &userID)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+		}
+		logs, err := c.UserService.GetUserLogs(userID)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+		}
+		ctx.JSON(http.StatusOK, logs)
 	}
 }

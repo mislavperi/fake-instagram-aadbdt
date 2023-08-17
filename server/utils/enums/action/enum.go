@@ -12,6 +12,7 @@ const (
 	MODIFY_USER
 	DELETE_USER
 	LOGIN_USER
+	GET_USER_INFO
 
 	CHANGE_PLAN
 	CHOOSE_PLAN
@@ -34,6 +35,8 @@ func (a Action) String() string {
 		return "delete_user"
 	case LOGIN_USER:
 		return "login_user"
+	case GET_USER_INFO:
+		return "get_user_info"
 
 	case CHANGE_PLAN:
 		return "change_plan"

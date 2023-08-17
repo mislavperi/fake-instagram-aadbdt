@@ -6,7 +6,7 @@ import {
   useColorModeValue,
   Stack,
   Text,
-  HStack
+  HStack,
 } from "@chakra-ui/react";
 import { Outlet } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
@@ -24,8 +24,8 @@ const Links: NavLink[] = [
   },
   {
     title: "Upload image",
-    path: "/upload"
-  }
+    path: "/upload",
+  },
 ];
 
 const NavLink = ({ link }: { link: NavLink }) => {
@@ -43,9 +43,7 @@ const NavLink = ({ link }: { link: NavLink }) => {
       }}
       onClick={() => navigate(link.path)}
     >
-      <Text>
-      {link.title}
-        </Text>
+      <Text>{link.title}</Text>
     </Box>
   );
 };
@@ -55,17 +53,17 @@ export default function Simple() {
   const { user } = useUserContext();
 
   return (
-    <div style={{ height: "100vh" }}>
+    <div style={{ height: "100vh", background: "white" }}>
       <Flex
         justify="space-between"
         width="100vw"
-        bg="red"
         align="center"
         py={5}
+        borderBottom="1px solid black"
       >
         <HStack>
           {Links.map((link: NavLink) => {
-            return <NavLink link={link} />;
+            return <NavLink link={link}/>;
           })}
         </HStack>
         <Stack direction="row" align="center">
@@ -74,11 +72,11 @@ export default function Simple() {
           ) : (
             <Button onClick={() => navigate("/login")}>Log in</Button>
           )}
-
           <Avatar
+            mx={2}
+            size="md"
             name="Dan Abrahmov"
             src="https://bit.ly/dan-abramov"
-            w={64}
             borderRadius="50%"
           />
         </Stack>

@@ -2,7 +2,6 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import Login from "./pages/auth/login/page.tsx";
 import Home from "./pages/home/page.tsx";
-import Welcome from "./pages/welcome/page.tsx";
 import Auth from "./components/auth.tsx";
 import Profile from "./pages/profile/page.tsx";
 import "./index.css";
@@ -14,6 +13,8 @@ import { UserProvider } from "./context/userContext.tsx";
 import UploadImage from "./pages/upload/page.tsx";
 import RedirectComp from "./components/redirect.tsx";
 import Edit from "./pages/profile/edit/page.tsx";
+import UserStatistics from "./pages/profile/admin/statistics/page.tsx";
+import UserPictures from "./pages/profile/admin/pictures/page.tsx";
 
 const router = createBrowserRouter([
   {
@@ -56,15 +57,19 @@ const router = createBrowserRouter([
           </Auth>
         ),
       },
+      {
+        path: "statistics/:id",
+        element: (
+          <UserStatistics />
+        ),
+      },
+      {
+        path: "userimages/:id",
+        element: (
+          <UserPictures />
+        ),
+      }
     ],
-  },
-  {
-    path: "/welcome",
-    element: (
-      <Auth>
-        <Welcome />
-      </Auth>
-    ),
   },
 ]);
 

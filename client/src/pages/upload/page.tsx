@@ -1,6 +1,6 @@
 import Cookies from "universal-cookie";
 
-import { useContext, useState, useCallback, SyntheticEvent } from "react";
+import { useContext, useState, useCallback, SyntheticEvent, useEffect } from "react";
 
 import {
   Button,
@@ -26,11 +26,21 @@ export default function UploadImage() {
 
   const user = useContext(UserContext);
 
+  useEffect(() => {
+    fetch("http://localhost:8080/consumption/get", {
+      headers: {
+        Accept: "application/json",
+        Authorization: accessToken,
+        Refresh: refreshToken
+      }
+    })
+  },[])
+
   const [picture, setPicture ] = useState<string>();
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [hashtags, setHashtags] = useState<string[]>([]);
-  const [format, setFormat] = useState<string>("");
+  const [format, setFormat] = useState<string>("jpeg");
   const [height, setHeight] = useState<string>("0");
   const [width, setWidth] = useState<string>("0");
   const handleTagsChange = useCallback(
@@ -57,8 +67,6 @@ export default function UploadImage() {
       formData.append("height", height);
       formData.append("width", width);
     }
-
-    console.log(JSON.stringify(hashtags))
 
     fetch("http://localhost:8080/picture/upload", {
       method: "POST",

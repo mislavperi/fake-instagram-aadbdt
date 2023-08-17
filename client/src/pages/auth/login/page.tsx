@@ -52,9 +52,6 @@ export default function Login() {
             type: "UPDATE_USER",
             payload: user,
           });
-          if (user.plan.planName === "" ) {
-            navigate("/welcome")
-          }
         });
         navigate("/home");
       }

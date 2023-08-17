@@ -19,7 +19,7 @@ func NewUserRepository(database *gorm.DB) *UserRepository {
 	}
 }
 
-func (r *UserRepository) Create(firstName string, lastName string, username string, email string, password string) error {
+func (r *UserRepository) Create(firstName string, lastName string, username string, email string, password string) (*int, error) {
 	user := models.User{
 		FirstName: firstName,
 		LastName:  lastName,
@@ -28,69 +28,82 @@ func (r *UserRepository) Create(firstName string, lastName string, username stri
 		Password:  password,
 	}
 	if err := r.Database.Create(&user).Error; err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	var userObj models.User
+
+	if err := r.Database.Last(&userObj).Error; err != nil {
+		return nil, err
+	}
+	return &userObj.ID, nil
 }
 
-func (r *UserRepository) CheckCredentials(username string, password string) error {
+func (r *UserRepository) CheckCredentials(username string, password string) (*int, error) {
 	var result models.User
 	if err := r.Database.First(&result).Where(&models.User{Username: username}).Error; err != nil {
-		return err
+		return nil, err
 	}
 	err := bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(password))
 	if err != nil {
-		return customerrors.NewInvalidCredentialsError(err.Error())
+		return nil, customerrors.NewInvalidCredentialsError(err.Error())
 	}
-	return nil
+	return &result.ID, err
 }
 
-func (r *UserRepository) FetchUserInformation(username string) (*models.User, error) {
+func (r *UserRepository) FetchUserInformation(id int) (*models.User, error) {
 	var result models.User
-	if err := r.Database.Preload("Plan").Preload("Role").First(&result).Where(&models.User{Username: username}).Error; err != nil {
+	if err := r.Database.Preload("Role").First(&result).Where("id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &result, nil
 }
 
-func (r *UserRepository) SetUserPlan(username string, plan models.Plan) error {
-	var user models.User
-	result := r.Database.Preload("Plan").Where("username=?", username).First(&user)
-	if result.Error != nil {
-		return result.Error
-	}
-	user.Plan = &plan
-	result = r.Database.Save(&user)
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
-}
-
-func (r *UserRepository) AuthenticateGithubUser(mappedUser models.User) error {
+func (r *UserRepository) AuthenticateGithubUser(mappedUser models.User) (*int, error) {
 	var result *models.User
 	if err := r.Database.First(&result).Where(&models.User{Username: mappedUser.Username}).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
+			return nil, err
 		}
 		if err = r.Database.Create(&mappedUser).Error; err != nil {
-			return err
+			return nil, err
 		}
-		return nil
+		var latestUser models.User
+		if err := r.Database.Last(&latestUser).Error; err != nil {
+			if err = r.Database.Create(&mappedUser).Error; err != nil {
+				return nil, err
+			}
+		}
+		return &latestUser.ID, nil
 	}
-	return nil
+	return &result.ID, nil
 }
 
-func (r *UserRepository) AuthenticateGoogleUser(mappedUser models.User) error {
+func (r *UserRepository) AuthenticateGoogleUser(mappedUser models.User) (*int, error) {
 	var result *models.User
 	if err := r.Database.First(&result).Where(&models.User{Username: mappedUser.Username}).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
+			return nil, err
 		}
 		if res := r.Database.Create(&mappedUser); res.Error != nil {
-			return err
+			return nil, err
 		}
-		return nil
+		var latestUser models.User
+		if err := r.Database.Last(&latestUser).Error; err != nil {
+			if err = r.Database.Create(&mappedUser).Error; err != nil {
+				return nil, err
+			}
+		}
+		return &latestUser.ID, nil
 	}
-	return nil
+	return &result.ID, nil
+}
+
+func (r *UserRepository) GetAllUsers() ([]*models.User, error) {
+	var users []*models.User
+	if err := r.Database.Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }

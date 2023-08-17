@@ -12,6 +12,7 @@ type PlanMapper interface {
 }
 
 type PlanService struct {
+
 	planRepository interfaces.PlanRepository
 	planMapper     PlanMapper
 	logRepository  interfaces.LogRepository
@@ -40,4 +41,13 @@ func (s *PlanService) GetPlan(planName string) (*psqlmodels.Plan, error) {
 		return nil, err
 	}
 	return plan, nil
+}
+
+func (s *PlanService) GetPlanByID(planID int) (*models.Plan, error) {
+	plan, err := s.planRepository.GetPlanDetails(planID)
+	if err != nil {
+		return nil, err
+	}
+	mappedPlan := s.planMapper.MapPlan(plan)
+	return &mappedPlan, nil
 }

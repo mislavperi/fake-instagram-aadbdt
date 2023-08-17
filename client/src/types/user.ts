@@ -1,6 +1,8 @@
 import Plan from "./plan";
 
 type User = {
+    [key: string]: any;
+    id: number;
     firstName: string;
     lastName: string;
     email: string;

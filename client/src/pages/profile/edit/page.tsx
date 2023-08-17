@@ -81,7 +81,6 @@ export default function Edit() {
     pictureURI: string,
     pictureHashtags: any
   ) => {
-    console.log(pictureHashtags)
     setTitle(title);
     setDescription(description);
     setPictureURI(pictureURI);
@@ -92,18 +91,17 @@ export default function Edit() {
   return title !== "" ? (
     <Flex
       direction="column"
-      bg="red"
-      width="fit-content"
-      border="1px solid black"
+      align="center"
     >
-      <img src={pictureURI} alt={description} width={300} height={300} />
-      <Text fontSize="16px" p={0} m={0}>
+      <img src={pictureURI} alt={description} width={600} />
+      <Text fontSize="18px" p={0} m={0}>
         {title}
       </Text>
       <Editable value={description} onChange={setDescription}>
         <EditablePreview />
         <EditableInput />
       </Editable>
+      <Text fontStyle="bold">Hashtags:</Text>
       <ChakraTagInput tags={hashtags} setTags={setHashtags} />
       <Button onClick={submitChanges}>Update image</Button>
     </Flex>

@@ -17,9 +17,9 @@ func NewLogRepository(database *gorm.DB) *LogRepository {
 	}
 }
 
-func (r *LogRepository) LogAction(user *models.User, action string) error {
+func (r *LogRepository) LogAction(userID int, action string) error {
 	newLog := models.Log{
-		User:      *user,
+		UserID:    int64(userID),
 		Timestamp: time.Now(),
 		Action:    action,
 	}
@@ -27,4 +27,12 @@ func (r *LogRepository) LogAction(user *models.User, action string) error {
 		return err
 	}
 	return nil
+}
+
+func (r *LogRepository) GetUserLogs(userID int) ([]models.Log, error) {
+	var userLogs []models.Log
+	if err := r.Database.Where("user_id = ?", userID).Limit(15).Find(&userLogs).Error; err != nil {
+		return nil, err
+	}
+	return userLogs, nil
 }

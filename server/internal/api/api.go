@@ -15,7 +15,7 @@ type API struct {
 	port uint
 }
 
-func NewAPI(userController *controllers.UserController, planController *controllers.PlanController, pictureController *controllers.PictureController, port uint) *API {
+func NewAPI(userController *controllers.UserController, planController *controllers.PlanController, pictureController *controllers.PictureController, uploadController *controllers.UploadController, port uint) *API {
 	api := &API{
 		gin:  gin.Default(),
 		port: port,
@@ -30,7 +30,7 @@ func NewAPI(userController *controllers.UserController, planController *controll
 			},
 		),
 	)
-	api.registerRoutes(userController, planController, pictureController)
+	api.registerRoutes(userController, planController, pictureController, uploadController)
 	return api
 }
 
@@ -49,7 +49,7 @@ func (a *API) Start(ctx context.Context) {
 	}
 }
 
-func (a *API) registerRoutes(userController *controllers.UserController, planController *controllers.PlanController, pictureController *controllers.PictureController) {
+func (a *API) registerRoutes(userController *controllers.UserController, planController *controllers.PlanController, pictureController *controllers.PictureController, uploadController *controllers.UploadController) {
 	authGroup := a.gin.Group("/auth")
 	authGroup.POST("/register", userController.RegisterUser())
 	authGroup.POST("/login", userController.Login())
@@ -61,14 +61,29 @@ func (a *API) registerRoutes(userController *controllers.UserController, planCon
 	userGroup.GET("/whoami", userController.Whoami())
 	userGroup.POST("/select", userController.SetUserPlan())
 
+	adminGroup := a.gin.Group("/admin")
+	adminGroup.Use(middlewares.JwtTokenCheck())
+	adminGroup.GET("/users", userController.GetAllUsers())
+	adminGroup.GET("/statistics", uploadController.GetUserStatistics())
+	adminGroup.GET("/changePlan", userController.AdminUserPlanChange())
+	adminGroup.GET("/userPictures", pictureController.GetSpecificUserImages())
+	adminGroup.GET("/userlogs", userController.GetUserLogs())
+
 	planGroup := a.gin.Group("/plans")
 	planGroup.GET("/get", planController.GetPlans())
 
+	unauthorizedPictureGroup := a.gin.Group("/public/picture")
+	unauthorizedPictureGroup.GET("/get", pictureController.GetImages())
+
 	pictureGroup := a.gin.Group("/picture")
+	pictureGroup.Use(middlewares.JwtTokenCheck())
 	pictureGroup.POST("/upload", pictureController.UploadImage())
-	pictureGroup.GET("/get", pictureController.GetImages())
 	pictureGroup.GET("/userImages", pictureController.GetUserImages())
 	pictureGroup.GET("/info", pictureController.GetPictureByID())
 	pictureGroup.POST("/update", pictureController.UpdateImage())
+	pictureGroup.POST("/edited", pictureController.GetEditedImage())
 
+	uploadGroup := a.gin.Group("/statistics")
+	uploadGroup.Use(middlewares.JwtTokenCheck())
+	uploadGroup.GET("/get", uploadController.GetStatistics())
 }

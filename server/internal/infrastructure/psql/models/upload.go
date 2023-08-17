@@ -1,6 +1,10 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type DailyUpload struct {
 	gorm.Model
@@ -10,4 +14,5 @@ type DailyUpload struct {
 	Picture      Picture
 	UserID       int64
 	User         User
+	CreatedAt    time.Time
 }

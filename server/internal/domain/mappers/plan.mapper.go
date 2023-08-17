@@ -13,9 +13,9 @@ func NewPlanMapper() *PlanMapper {
 
 func (m *PlanMapper) MapPlans(plans []psqlmodels.Plan) []models.Plan {
 	var mappedPlans []models.Plan
-
 	for _, plan := range plans {
 		mappedPlans = append(mappedPlans, models.Plan{
+			ID:                plan.ID,
 			PlanName:          plan.PlanName,
 			DailyUploadLimit:  plan.DailyUploadLimit,
 			UploadLimitSizeKb: plan.UploadLimitSizeKb,
@@ -27,6 +27,7 @@ func (m *PlanMapper) MapPlans(plans []psqlmodels.Plan) []models.Plan {
 
 func (m *PlanMapper) MapPlan(plan *psqlmodels.Plan) models.Plan {
 	return models.Plan{
+		ID:                plan.ID,
 		PlanName:          plan.PlanName,
 		DailyUploadLimit:  plan.DailyUploadLimit,
 		UploadLimitSizeKb: plan.UploadLimitSizeKb,

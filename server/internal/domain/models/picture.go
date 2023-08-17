@@ -35,3 +35,12 @@ type PictureUpdateRequest struct {
 	Description string   `json:"description"`
 	Hashtags    []string `json:"hashtags"`
 }
+
+type EditImageRequest struct {
+	ID     int     `json:"id"`
+	Height int32   `json:"height"`
+	Width  int32   `json:"width"`
+	Format string  `json:"format"`
+	Sepia  float32 `json:"sepia"`
+	Blur   float32 `json:"blur"`
+}

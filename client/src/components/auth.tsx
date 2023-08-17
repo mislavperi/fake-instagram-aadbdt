@@ -8,11 +8,7 @@ const Auth = ({ children }: { children: any }) => {
 
   useEffect(() => {
     if (!user.username) {
-      if (!user.plan.planName) {
-        navigate("/welcome");
-      } else {
-        navigate("/home");
-      }
+      navigate("/home");
     }
   }, []);
 

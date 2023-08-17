@@ -13,25 +13,34 @@ import (
 
 func Api() (*api.API, error) {
 	db, err := psql.NewDatabaseConnection(config.Cfg.Database.Host, config.Cfg.Database.User, config.Cfg.Database.Password, config.Cfg.Database.Name, config.Cfg.Database.Port)
-
 	logRepository := repositories.NewLogRepository(db)
-	s3Repository := repository.NewS3Repository(config.Cfg.Aws.Bucket, config.Cfg.Aws.Region, config.Cfg.Aws.AccessKeyId, config.Cfg.Aws.SecretAccessKey, "")
+	logMapper := mappers.NewLogMapper()
+	logService := services.NewLogService(logRepository, logMapper)
+	planLogRepository := repositories.NewPlanLogRepository(db)
+	planLogService := services.NewPlanLogService(planLogRepository)
+
 	planRepository := repositories.NewPlanRepository(db)
 	planMapper := mappers.NewPlanMapper()
 	planService := services.NewPlanService(planRepository, planMapper, logRepository)
-	planController := controllers.NewPlanController(planService)
 	userMapper := mappers.NewUserMapper()
 	userRepository := repositories.NewUserRepository(db)
-	userService := services.NewUserService(userRepository, userMapper, planService, logRepository, config.Cfg.Github.ClientID, config.Cfg.Github.ClientSecret, config.Cfg.Auth.SecretKey)
+	userService := services.NewUserService(userRepository, userMapper, planService, planLogService, logService, config.Cfg.Github.ClientID, config.Cfg.Github.ClientSecret, config.Cfg.Auth.SecretKey)
+	uploadRepository := repositories.NewDailyUploadRepository(db)
+	uploadService := services.NewDailyUploadService(uploadRepository, planLogService, planService, userService)
+	s3Repository := repository.NewS3Repository(config.Cfg.Aws.Bucket, config.Cfg.Aws.Region, config.Cfg.Aws.AccessKeyId, config.Cfg.Aws.SecretAccessKey, "")
+
+	planController := controllers.NewPlanController(planService)
+
 	userController := controllers.NewUserController(userService)
 	pictureMapper := mappers.NewPictureMapper()
 	pictureRepository := repositories.NewPictureRepository(db)
-	pictureService := services.NewPictureService(userService, pictureRepository, pictureMapper, logRepository, s3Repository)
+	pictureService := services.NewPictureService(userService, uploadService, pictureRepository, pictureMapper, logRepository, s3Repository)
 	pictureController := controllers.NewPictureController(pictureService)
+	uploadController := controllers.NewUploadController(uploadService)
 
 	if err != nil {
 		panic(err)
 	}
-	api := api.NewAPI(userController, planController, pictureController, 8080)
+	api := api.NewAPI(userController, planController, pictureController, uploadController, 8080)
 	return api, nil
 }

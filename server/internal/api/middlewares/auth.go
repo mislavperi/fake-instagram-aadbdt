@@ -84,7 +84,6 @@ func JwtTokenCheck() gin.HandlerFunc {
 				ctx.AbortWithStatus(http.StatusUnauthorized)
 				return
 			}
-
 			if time.Until(time.Unix(accessClaims.ExpiresAt, 0)) > 15*time.Second {
 				ctx.Request.Header.Add("Identifier", accessClaim.Identifier)
 				ctx.Next()

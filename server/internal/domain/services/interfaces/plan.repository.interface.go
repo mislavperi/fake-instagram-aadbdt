@@ -7,4 +7,5 @@ import (
 type PlanRepository interface {
 	GetPlans() ([]psqlmodels.Plan, error)
 	GetPlan(name string) (*psqlmodels.Plan, error)
+	GetPlanDetails(planID int) (*psqlmodels.Plan, error)
 }

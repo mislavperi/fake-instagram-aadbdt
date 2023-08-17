@@ -46,6 +46,6 @@ func NewDatabaseConnection(
 	if err != nil {
 		return nil, err
 	}
-	dbInstance.AutoMigrate(&models.User{}, &models.Role{}, &models.Plan{}, &models.Picture{}, &models.Log{}, &models.DailyUpload{})
+	dbInstance.AutoMigrate(&models.User{}, &models.Role{}, &models.Plan{}, &models.Picture{}, &models.Log{}, &models.DailyUpload{}, &models.PlanLog{})
 	return dbInstance, nil
 }

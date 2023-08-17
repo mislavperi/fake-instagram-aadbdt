@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
-	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/services/interfaces"
 	psqlmodels "github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
 	enums "github.com/mislavperi/fake-instagram-aadbdt/server/utils/enums/action"
 
@@ -19,19 +19,20 @@ import (
 
 type UserMapper interface {
 	MapUserToDTO(plan models.Plan) psqlmodels.Plan
-	MapGHUserToDTO(user models.GHUser, plan psqlmodels.Plan) psqlmodels.User
-	MapGoogleUserToDTO(user models.GoogleUser, plan psqlmodels.Plan) psqlmodels.User
+	MapGHUserToDTO(user models.GHUser) psqlmodels.User
+	MapGoogleUserToDTO(user models.GoogleUser) psqlmodels.User
 	MapDTOToUser(user psqlmodels.User) models.User
 	MapUserToDTOO(user models.User) psqlmodels.User
+	MapDTOToUsers(users []*psqlmodels.User) []models.User
 }
 
 type UserRepository interface {
-	Create(firstName string, lastName string, username string, email string, password string) error
-	CheckCredentials(username string, password string) error
-	FetchUserInformation(username string) (*psqlmodels.User, error)
-	SetUserPlan(username string, plan psqlmodels.Plan) error
-	AuthenticateGithubUser(psqlmodels.User) error
-	AuthenticateGoogleUser(psqlmodels.User) error
+	Create(firstName string, lastName string, username string, email string, password string) (*int, error)
+	CheckCredentials(username string, password string) (*int, error)
+	FetchUserInformation(id int) (*psqlmodels.User, error)
+	AuthenticateGithubUser(psqlmodels.User) (*int, error)
+	AuthenticateGoogleUser(psqlmodels.User) (*int, error)
+	GetAllUsers() ([]*psqlmodels.User, error)
 }
 
 type PlanDomain interface {
@@ -39,24 +40,24 @@ type PlanDomain interface {
 }
 
 type UserService struct {
-	planService PlanDomain
+	planLogService *PlanLogService
+	logService     *LogService
 
 	userMapper UserMapper
 
 	UserRepository UserRepository
-	logRepository  interfaces.LogRepository
 
 	ghClientId     string
 	ghClientSecret string
 	secretKey      string
 }
 
-func NewUserService(userRepository UserRepository, userMapper UserMapper, planService PlanDomain, logRepository interfaces.LogRepository, ghClientId string, ghClientSecret string, secretKey string) *UserService {
+func NewUserService(userRepository UserRepository, userMapper UserMapper, planService PlanDomain, planLogService *PlanLogService, logService *LogService, ghClientId string, ghClientSecret string, secretKey string) *UserService {
 	return &UserService{
 		UserRepository: userRepository,
 		userMapper:     userMapper,
-		planService:    planService,
-		logRepository:  logRepository,
+		planLogService: planLogService,
+		logService:     logService,
 		ghClientId:     ghClientId,
 		ghClientSecret: ghClientSecret,
 		secretKey:      secretKey,
@@ -67,12 +68,13 @@ func (s *UserService) MapUserToDTO(user models.User) psqlmodels.User {
 	return s.userMapper.MapUserToDTOO(user)
 }
 
-func (s *UserService) GetUserInformation(username string) (*models.User, error) {
-	user, err := s.UserRepository.FetchUserInformation(username)
+func (s *UserService) GetUserInformation(id int) (*models.User, error) {
+	user, err := s.UserRepository.FetchUserInformation(id)
 	if err != nil {
 		return nil, err
 	}
 	mappedUser := s.userMapper.MapDTOToUser(*user)
+	s.logService.LogAction(id, enums.GET_USER_INFO.String())
 	return &mappedUser, nil
 }
 
@@ -81,40 +83,35 @@ func (s *UserService) Create(firstName string, lastName string, username string,
 	if err != nil {
 		return err
 	}
-	err = s.UserRepository.Create(firstName, lastName, username, email, string(bytes))
+	userID, err := s.UserRepository.Create(firstName, lastName, username, email, string(bytes))
 	if err != nil {
 		return err
 	}
-	s.logRepository.LogAction(nil, enums.CREATE_USER.String())
+	s.logService.LogAction(*userID, enums.CREATE_USER.String())
 	return nil
 }
 
 func (s *UserService) Login(username string, password string) (*string, *string, error) {
-	err := s.UserRepository.CheckCredentials(username, password)
+	id, err := s.UserRepository.CheckCredentials(username, password)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	accessToken, refreshToken, err := s.generateTokenPair(username)
+	accessToken, refreshToken, err := s.generateTokenPair(*id)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	user, err := s.UserRepository.FetchUserInformation(username)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	s.logRepository.LogAction(user, enums.LOGIN_USER.String())
+	s.logService.LogAction(*id, enums.LOGIN_USER.String())
 	return accessToken, refreshToken, nil
 }
 
-func (s *UserService) generateTokenPair(username string) (*string, *string, error) {
+func (s *UserService) generateTokenPair(userID int) (*string, *string, error) {
 	accessExpirationTime := time.Now().Add(5 * time.Minute).Unix()
 	refreshExpirationTime := time.Now().Add(45 * time.Minute).Unix()
 
 	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, models.Claims{
-		Identifier: username,
+		Identifier: strconv.Itoa(userID),
 		Type:       "access",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: accessExpirationTime,
@@ -125,7 +122,7 @@ func (s *UserService) generateTokenPair(username string) (*string, *string, erro
 	}
 
 	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, models.Claims{
-		Identifier: username,
+		Identifier: strconv.Itoa(userID),
 		Type:       "refresh",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: refreshExpirationTime,
@@ -138,19 +135,21 @@ func (s *UserService) generateTokenPair(username string) (*string, *string, erro
 	return &accessToken, &refreshToken, nil
 }
 
-func (s *UserService) SelectUserPlan(username string, plan models.Plan) error {
-	mappedPlan := s.userMapper.MapUserToDTO(plan)
-	err := s.UserRepository.SetUserPlan(username, mappedPlan)
+func (s *UserService) SelectUserPlan(id int, plan models.Plan) error {
+	err := s.planLogService.InsertPlanChangeLog(int64(id), plan.ID)
 	if err != nil {
 		return err
 	}
+	s.logService.LogAction(id, enums.CHANGE_PLAN.String())
+	return nil
+}
 
-	user, err := s.UserRepository.FetchUserInformation(username)
+func (s *UserService) InsertAdminPlanChange(adminID int, userID int, planID int) error {
+	err := s.planLogService.InsertAdminPlanChangeLog(int64(userID), int64(planID))
 	if err != nil {
 		return err
 	}
-
-	s.logRepository.LogAction(user, enums.LOGIN_USER.String())
+	s.logService.LogAction(adminID, enums.CHANGE_PLAN.String())
 	return nil
 }
 
@@ -199,21 +198,19 @@ func (s *UserService) AuthenticateGithubUser(credentials models.GHCredentials) (
 	if err != nil || ghUser.Username == "" {
 		return nil, nil, err
 	}
-	mappedPlan, err := s.planService.GetPlan("FREE")
-
-	mappedUser := s.userMapper.MapGHUserToDTO(ghUser, *mappedPlan)
+	mappedUser := s.userMapper.MapGHUserToDTO(ghUser)
 	if err != nil {
 		return nil, nil, err
 	}
-	err = s.UserRepository.AuthenticateGithubUser(mappedUser)
+	id, err := s.UserRepository.AuthenticateGithubUser(mappedUser)
 	if err != nil {
 		return nil, nil, err
 	}
-	accessToken, refreshToken, err := s.generateTokenPair(mappedUser.Username)
+	accessToken, refreshToken, err := s.generateTokenPair(*id)
 	if err != nil {
 		return nil, nil, err
 	}
-	s.logRepository.LogAction(&mappedUser, enums.LOGIN_USER.String())
+	s.logService.LogAction(*id, enums.LOGIN_USER.String())
 	return accessToken, refreshToken, nil
 }
 
@@ -257,19 +254,32 @@ func (s *UserService) AuthenticateGoogleUser(credentials models.GoogleToken) (*s
 	if !ok {
 		return nil, nil, err
 	}
-	mappedPlan, err := s.planService.GetPlan("FREE")
+	mappedUser := s.userMapper.MapGoogleUserToDTO(*claims)
+	id, err := s.UserRepository.AuthenticateGoogleUser(mappedUser)
 	if err != nil {
 		return nil, nil, err
 	}
-	mappedUser := s.userMapper.MapGoogleUserToDTO(*claims, *mappedPlan)
-	err = s.UserRepository.AuthenticateGoogleUser(mappedUser)
+	accessToken, refreshToken, err := s.generateTokenPair(mappedUser.ID)
 	if err != nil {
 		return nil, nil, err
 	}
-	accessToken, refreshToken, err := s.generateTokenPair(mappedUser.Email)
-	if err != nil {
-		return nil, nil, err
-	}
-	s.logRepository.LogAction(&mappedUser, enums.LOGIN_USER.String())
+	s.logService.LogAction(*id, enums.LOGIN_USER.String())
 	return accessToken, refreshToken, nil
+}
+
+func (s *UserService) GetAllUsers() ([]models.User, error) {
+	users, err := s.UserRepository.GetAllUsers()
+	if err != nil {
+		return nil, err
+	}
+	mappedUsers := s.userMapper.MapDTOToUsers(users)
+	return mappedUsers, nil
+}
+
+func (s *UserService) GetUserLogs(userID int) ([]models.Log, error) {
+	logs, err := s.logService.GetUserLogs(userID)
+	if err != nil {
+		return nil, err
+	}
+	return logs, nil
 }

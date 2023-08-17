@@ -6,7 +6,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"math"
+	"net/url"
+	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -71,4 +74,27 @@ func (r *S3Repository) UploadToBucket(file bytes.Buffer, fileExt string) (*strin
 	}
 	url := fmt.Sprintf("https://%s.s3-%s.amazonaws.com/%s.%s", r.bucket, r.region, key, fileExt)
 	return &url, nil
+}
+
+func (r *S3Repository) DownloadImage(imageUrl string) ([]byte, error) {
+	u, err := url.Parse(imageUrl)
+	if err != nil {
+		return nil, err
+	}
+	items := path.Base(u.Path)
+
+	getreq := &s3.GetObjectInput{
+		Bucket: aws.String(r.bucket),
+		Key:    aws.String(items),
+	}
+	resp, err := r.svc.GetObjectWithContext(context.Background(), getreq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
 }

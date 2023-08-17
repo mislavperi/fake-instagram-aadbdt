@@ -1,5 +1,4 @@
 import {
-  Flex,
   Text,
   HStack,
   Container,
@@ -12,7 +11,7 @@ import { useState, useEffect } from "react";
 import Picture from "../../types/picture";
 import { RangeDatepicker } from "chakra-dayzed-datepicker";
 import InputTag from "../../components/inputTag";
-import Image from "../../components/image"
+import Image from "../../components/image";
 
 interface Filter {
   [key: string]: any;
@@ -35,7 +34,7 @@ export default function Home() {
   const getPictures = () => {
     const queryParam: string = JSON.stringify(filter);
 
-    fetch(`http://localhost:8080/picture/get?filter=${queryParam}`)
+    fetch(`http://localhost:8080/public/picture/get?filter=${queryParam}`)
       .then((res) => res.json())
       .then((res) => setPictures(res));
   };
@@ -50,64 +49,65 @@ export default function Home() {
     } else {
       newFilter[field] = value;
     }
-    console.log(newFilter);
     setFilter(newFilter);
   };
 
   return (
     <main>
-      <Container>
-        <Wrap>
-          <WrapItem>
-            <HStack>
-              <Text>Title: </Text>
-              <Input onChange={(e) => updateFilter(e.target.value, "title")} />
-            </HStack>
-          </WrapItem>
-          <WrapItem>
-            <HStack>
-              <Text>Description: </Text>
-              <Input onChange={(e) => updateFilter(e.target.value, "title")} />
-            </HStack>
-          </WrapItem>
-          <WrapItem>
-            <HStack>
-              <Text>User</Text>
-              <Input onChange={(e) => updateFilter(e.target.value, "title")} />
-            </HStack>
-          </WrapItem>
-          <WrapItem>
-            <HStack>
-              <Text>Select date range: </Text>
-              <RangeDatepicker
-                selectedDates={selectedDates}
-                onDateChange={setSelectedDates}
-              />
-            </HStack>
-          </WrapItem>
-        </Wrap>
-        <HStack>
-          <Text>Hashtags:</Text>
-          <InputTag tags={hashtags} setTags={setHashtags} />
-        </HStack>
-        <HStack>
-          <Button onClick={getPictures}>Apply filter</Button>
-        </HStack>
-      </Container>
-
+      <Wrap m={5}>
+        <WrapItem>
+          <HStack>
+            <Text>Title: </Text>
+            <Input onChange={(e) => updateFilter(e.target.value, "title")} />
+          </HStack>
+        </WrapItem>
+        <WrapItem>
+          <HStack>
+            <Text>Description: </Text>
+            <Input onChange={(e) => updateFilter(e.target.value, "title")} />
+          </HStack>
+        </WrapItem>
+        <WrapItem>
+          <HStack>
+            <Text>User</Text>
+            <Input onChange={(e) => updateFilter(e.target.value, "title")} />
+          </HStack>
+        </WrapItem>
+        <WrapItem>
+          <HStack>
+            <Text>Select date range: </Text>
+            <RangeDatepicker
+              selectedDates={selectedDates}
+              onDateChange={setSelectedDates}
+            />
+          </HStack>
+        </WrapItem>
+      </Wrap>
+      <HStack m={5}>
+        <Text>Hashtags:</Text>
+        <InputTag tags={hashtags} setTags={setHashtags} />
+      </HStack>
+      <HStack m={5}>
+        <Button onClick={getPictures}>Apply filter</Button>
+      </HStack>
       <Wrap>
         <WrapItem>
-          {pictures.length !== 0
-            ? pictures.map((image) => (
+          {pictures.length !== 0 || pictures !== null
+            ? pictures.map((image) => {
+              const timestamp = new Date(image.uploadDateTime)
+              return (
+                <Container key={image.id}>
                 <Image
-                  key={image.id}
+                  id={image.id}
                   title={image.title}
                   description={image.description}
                   url={image.pictureURI}
-                  dateTime={image.uploadDateTime}
+                  dateTime={timestamp.toLocaleString()}
                   hashtags={image.hashtags}
                 />
-              ))
+              </Container>
+              )
+            } )
             : null}
         </WrapItem>
       </Wrap>

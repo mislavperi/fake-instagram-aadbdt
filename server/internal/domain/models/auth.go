@@ -20,8 +20,8 @@ type GHToken struct {
 
 type GHUser struct {
 	Username string `json:"login"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
 }
 
 type GoogleUser struct {

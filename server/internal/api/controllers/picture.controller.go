@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"bytes"
 	"encoding/json"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
@@ -14,11 +16,12 @@ type PictureController struct {
 }
 
 type PictureService interface {
-	UploadImage(file multipart.File, title string, description string, hashtags []string, username string, height string, width string, fileExt string) error
+	UploadImage(file multipart.File, title string, description string, hashtags []string, userID int, height string, width string, fileExt string) error
 	GetImages(filter models.Filter) ([]models.Picture, error)
-	GetUserImages(username string) ([]models.Picture, error)
+	GetUserImages(userID int) ([]models.Picture, error)
 	GetImageByID(id int) (*models.Picture, error)
-	UpdateImageInformation(imageID int, description string, hashtags []string, username string) error
+	UpdateImageInformation(imageID int, description string, hashtags []string, userID int) error
+	GetEditedImage(imageID int, height int32, width int32, format string, sepia float32, blur float32) (*bytes.Buffer, error)
 }
 
 func NewPictureController(pictureService PictureService) *PictureController {
@@ -39,7 +42,13 @@ func (c *PictureController) UploadImage() gin.HandlerFunc {
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 		}
-		c.pictureService.UploadImage(file, pictureUpload.Title, pictureUpload.Description, parsedHashtags, ctx.GetHeader("Identifier"), pictureUpload.Height, pictureUpload.Width, pictureUpload.Format)
+		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		c.pictureService.UploadImage(file, pictureUpload.Title, pictureUpload.Description, parsedHashtags, identifier, pictureUpload.Height, pictureUpload.Width, pictureUpload.Format)
 		ctx.JSON(http.StatusOK, nil)
 	}
 }
@@ -64,9 +73,33 @@ func (c *PictureController) GetImages() gin.HandlerFunc {
 
 func (c *PictureController) GetUserImages() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		mappedPictures, err := c.pictureService.GetUserImages(ctx.GetHeader("Identifier"))
+		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		mappedPictures, err := c.pictureService.GetUserImages(identifier)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+		}
+		ctx.JSON(http.StatusOK, mappedPictures)
+	}
+}
+
+func (c *PictureController) GetSpecificUserImages() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var userID int
+		incReqParams := ctx.Query("id")
+		err := json.Unmarshal([]byte(incReqParams), &userID)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		mappedPictures, err := c.pictureService.GetUserImages(userID)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
 		}
 		ctx.JSON(http.StatusOK, mappedPictures)
 	}
@@ -93,11 +126,30 @@ func (c *PictureController) UpdateImage() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var updateImageRequest models.PictureUpdateRequest
 		ctx.ShouldBind(&updateImageRequest)
-		err := c.pictureService.UpdateImageInformation(updateImageRequest.ID, updateImageRequest.Description, updateImageRequest.Hashtags, ctx.GetHeader("Identifier"))
+		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		err = c.pictureService.UpdateImageInformation(updateImageRequest.ID, updateImageRequest.Description, updateImageRequest.Hashtags, identifier)
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 		ctx.JSON(http.StatusOK, nil)
+	}
+}
+
+func (c *PictureController) GetEditedImage() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var editImageRequests models.EditImageRequest
+		ctx.ShouldBind(&editImageRequests)
+		image, err := c.pictureService.GetEditedImage(editImageRequests.ID, editImageRequests.Height, editImageRequests.Width, editImageRequests.Format, editImageRequests.Sepia, editImageRequests.Blur)
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		ctx.Data(http.StatusOK, "application/octet-stream", image.Bytes())
 	}
 }

@@ -30,3 +30,11 @@ func (r *PlanRepository) GetPlan(name string) (*models.Plan, error) {
 	}
 	return &plan, nil
 }
+
+func (r *PlanRepository) GetPlanDetails(planID int) (*models.Plan, error) {
+	var plan models.Plan
+	if err := r.Database.Where("id = ?", planID).First(&plan).Error; err != nil {
+		return nil, err
+	}
+	return &plan, nil
+}

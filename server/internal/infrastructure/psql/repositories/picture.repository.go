@@ -24,25 +24,25 @@ func NewPictureRepository(database *gorm.DB) *PictureRepository {
 	}
 }
 
-func (r *PictureRepository) UploadPicture(title string, description string, hashtags []string, user models.User, pictureURI string) error {
+func (r *PictureRepository) UploadPicture(title string, description string, hashtags []string, userID int, pictureURI string) (*int64, error) {
 	pictureObject := models.Picture{
 		UploadDateTime: time.Now(),
 		Title:          title,
 		Description:    description,
 		PictureURI:     pictureURI,
 		Hashtags:       hashtags,
-		UserID:         int64(user.ID),
-		User:           user,
+		UserID:         int64(userID),
 	}
-	if err := r.Database.Create(&pictureObject).Error; err != nil {
-		return err
+	if err := r.Database.Preload("Plan").Preload("Role").Preload("User").Create(&pictureObject).Error; err != nil {
+		return nil, err
 	}
-	return nil
+	var lastImage models.Picture
+	r.Database.Last(&lastImage)
+	return &lastImage.ID, nil
 }
 
 func (r *PictureRepository) GetImages(filter domainmodels.Filter) ([]*models.Picture, error) {
 	var images []*models.Picture
-
 	databaseFilter := r.Database.Preload("User")
 	if filter.Title != nil {
 		databaseFilter.Where("title = ?", filter.Title)
@@ -71,7 +71,7 @@ func (r *PictureRepository) GetImages(filter domainmodels.Filter) ([]*models.Pic
 		databaseFilter.Or("user.username = ?", filter.User)
 	}
 
-	result := databaseFilter.Debug().Find(&images)
+	result := databaseFilter.Debug().Limit(10).Find(&images)
 
 	if result.Error != nil {
 		return nil, result.Error

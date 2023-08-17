@@ -10,8 +10,6 @@ type User struct {
 	Username  string
 	Password  string
 	Email     string
-	RoleID    *int64
+	RoleID    int64 `gorm:"default:2"`
 	Role      *Role
-	PlanID    *int64
-	Plan      *Plan
 }

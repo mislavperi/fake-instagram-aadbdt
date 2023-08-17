@@ -20,21 +20,19 @@ func (m *UserMapper) MapUserToDTO(plan models.Plan) psqlmodels.Plan {
 	}
 }
 
-func (m *UserMapper) MapGHUserToDTO(user models.GHUser, plan psqlmodels.Plan) psqlmodels.User {
+func (m *UserMapper) MapGHUserToDTO(user models.GHUser) psqlmodels.User {
 	return psqlmodels.User{
 		Email:    user.Email,
 		Username: user.Username,
-		Plan:     &plan,
 	}
 }
 
-func (m *UserMapper) MapGoogleUserToDTO(user models.GoogleUser, plan psqlmodels.Plan) psqlmodels.User {
+func (m *UserMapper) MapGoogleUserToDTO(user models.GoogleUser) psqlmodels.User {
 	return psqlmodels.User{
 		Email:     user.Email,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Username:  user.Email,
-		Plan:      &plan,
 	}
 }
 
@@ -44,14 +42,25 @@ func (m *UserMapper) MapDTOToUser(user psqlmodels.User) models.User {
 		Email:     user.Email,
 		FirstName: user.Email,
 		LastName:  user.LastName,
-		Plan: models.Plan{
-			PlanName:          user.Plan.PlanName,
-			UploadLimitSizeKb: user.Plan.UploadLimitSizeKb,
-			DailyUploadLimit:  user.Plan.DailyUploadLimit,
-			Cost:              user.Plan.DailyUploadLimit,
-		},
-		Username: user.Username,
+		Username:  user.Username,
+		RoleID:    user.RoleID,
 	}
+}
+
+func (m *UserMapper) MapDTOToUsers(users []*psqlmodels.User) []models.User {
+	var mappedUsers []models.User
+	for _, user := range users {
+		mappedUsers = append(mappedUsers, models.User{
+			ID:        user.ID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			RoleID:    user.RoleID,
+			Username:  user.Username,
+			Email:     user.Email,
+		})
+	}
+
+	return mappedUsers
 }
 
 func (m *UserMapper) MapUserToDTOO(user models.User) psqlmodels.User {
@@ -61,14 +70,6 @@ func (m *UserMapper) MapUserToDTOO(user models.User) psqlmodels.User {
 		LastName:  user.LastName,
 		Username:  user.Username,
 		Email:     user.Email,
-		Role: &psqlmodels.Role{
-			Name: user.Role.Name,
-		},
-		Plan: &psqlmodels.Plan{
-			PlanName:          user.Plan.PlanName,
-			UploadLimitSizeKb: user.Plan.UploadLimitSizeKb,
-			DailyUploadLimit:  user.Plan.DailyUploadLimit,
-			Cost:              user.Plan.Cost,
-		},
+		RoleID:    user.RoleID,
 	}
 }
