@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/api/controllers"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/api/middlewares"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type API struct {
@@ -23,7 +24,7 @@ func NewAPI(userController *controllers.UserController, planController *controll
 	api.gin.Use(
 		cors.New(
 			cors.Config{
-				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080", "http://localhost:5173"},
+				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080", "http://localhost:5173", "http://localhost:9090"},
 				AllowMethods:     []string{"POST", "GET"},
 				AllowHeaders:     []string{"Content-Type", "Accept", "Authorization", "Refresh"},
 				AllowCredentials: true,
@@ -50,6 +51,13 @@ func (a *API) Start(ctx context.Context) {
 }
 
 func (a *API) registerRoutes(userController *controllers.UserController, planController *controllers.PlanController, pictureController *controllers.PictureController, uploadController *controllers.UploadController) {
+	metricsGroup := a.gin.Group("/metrics")
+	metricsGroup.GET("/", func(ctx *gin.Context) {
+		h := promhttp.Handler()
+
+		h.ServeHTTP(ctx.Writer, ctx.Request)
+	})
+
 	authGroup := a.gin.Group("/auth")
 	authGroup.POST("/register", userController.RegisterUser())
 	authGroup.POST("/login", userController.Login())

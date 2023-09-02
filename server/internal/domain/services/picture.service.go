@@ -15,8 +15,14 @@ import (
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/services/interfaces"
 	psqlmodels "github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
 	"github.com/nfnt/resize"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/image/bmp"
 )
+
+type PictureMetrics interface {
+	OnUploadStart() *prometheus.Timer
+	OnUploadFinish(timer *prometheus.Timer)
+}
 
 type PictureService struct {
 	userService        *UserService
@@ -27,6 +33,8 @@ type PictureService struct {
 
 	s3Repository  S3Repository
 	logRepository interfaces.LogRepository
+
+	metrics PictureMetrics
 }
 
 type PictureMapper interface {
@@ -46,7 +54,7 @@ type PictureRepository interface {
 	UpdateImage(id int, description string, hashtags []string, userID int, userRole string) error
 }
 
-func NewPictureService(userService *UserService, dailyUploadService interfaces.DailyUploadService, pictureRepository PictureRepository, pictureMapper PictureMapper, logRepository interfaces.LogRepository, s3Repository S3Repository) *PictureService {
+func NewPictureService(userService *UserService, dailyUploadService interfaces.DailyUploadService, pictureRepository PictureRepository, pictureMapper PictureMapper, logRepository interfaces.LogRepository, s3Repository S3Repository, metrics PictureMetrics) *PictureService {
 	return &PictureService{
 		pictureRepository: pictureRepository,
 		pictureMapper:     pictureMapper,
@@ -56,10 +64,15 @@ func NewPictureService(userService *UserService, dailyUploadService interfaces.D
 
 		logRepository: logRepository,
 		s3Repository:  s3Repository,
+
+		metrics: metrics,
 	}
 }
 
 func (s *PictureService) UploadImage(file multipart.File, title string, description string, hashtags []string, id int, height string, width string, fileExt string) error {
+	timer := s.metrics.OnUploadStart()
+	defer s.metrics.OnUploadFinish(timer)
+
 	decodedImage, _, err := image.Decode(file)
 	if err != nil {
 		return err

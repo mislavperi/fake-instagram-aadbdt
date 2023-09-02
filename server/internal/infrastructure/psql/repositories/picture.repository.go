@@ -52,17 +52,16 @@ func (r *PictureRepository) GetImages(filter domainmodels.Filter) ([]*models.Pic
 		databaseFilter.Or("description = ?", filter.Description)
 	}
 
-	if filter.TimeRange != nil {
-		if filter.TimeRange.Gte != nil && filter.TimeRange.Lte != nil {
-			databaseFilter.Where("UploadedDateTime BETWEEN ? AND ?", filter.TimeRange.Gte, filter.TimeRange.Lte)
-		} else {
-			if filter.TimeRange.Gte != nil {
-				databaseFilter.Or("UploadedDateTime >= ?", filter.TimeRange.Gte)
-			}
-			if filter.TimeRange.Lte != nil {
-				databaseFilter.Or("UploadedDateTime =< ?", filter.TimeRange.Lte)
-			}
+	if filter.DateRange.Gte != nil && filter.DateRange.Lte != nil {
+		databaseFilter.Where("upload_date_time BETWEEN ? AND ?", filter.DateRange.Gte, filter.DateRange.Lte)
+	} else {
+		if filter.DateRange.Gte != nil {
+			databaseFilter.Or("upload_date_time >= ?", filter.DateRange.Gte)
 		}
+		if filter.DateRange.Lte != nil {
+			databaseFilter.Or("upload_date_time =< ?", filter.DateRange.Lte)
+		}
+
 	}
 	if filter.Hashtags != nil {
 		databaseFilter.Or("hashtags = ?", filter.Hashtags)
