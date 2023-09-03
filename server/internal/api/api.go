@@ -24,7 +24,7 @@ func NewAPI(userController *controllers.UserController, planController *controll
 	api.gin.Use(
 		cors.New(
 			cors.Config{
-				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080", "http://localhost:5173", "http://localhost:9090"},
+				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080", "http://localhost:5173", "http://localhost:9090", "http://localhost:9091"},
 				AllowMethods:     []string{"POST", "GET"},
 				AllowHeaders:     []string{"Content-Type", "Accept", "Authorization", "Refresh"},
 				AllowCredentials: true,

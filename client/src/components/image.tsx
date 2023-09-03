@@ -25,6 +25,8 @@ import {
   SliderMark,
   Box,
 } from "@chakra-ui/react";
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
 
 import { DownloadIcon } from "@chakra-ui/icons";
 
@@ -63,8 +65,8 @@ const Image = ({
         format: format,
         height: height,
         width: width,
-        blur: blur/100,
-        sapia: sapia/100,
+        blur: blur / 100,
+        sapia: sapia / 100,
       }),
     })
       .then((res) => res.blob())
@@ -91,7 +93,9 @@ const Image = ({
       p={5}
       borderRadius="5px"
     >
-      <img src={url} alt={description} />
+      <Zoom>
+        <img src={url} alt={description} />
+      </Zoom>
       <Text fontSize="18px" p={0} m={0}>
         {title}
       </Text>

@@ -1,0 +1,42 @@
+version: "3.9"
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    env_file:
+    - ./server/local.env
+    depends_on:
+      - database
+    ports:
+      - 8080:8080
+    container_name: server-fk
+  database:
+    image: postgres:15.3
+    environment:
+    - POSTGRES_PASSWORD=root
+    - POSTGRES_DB=fakeinstagram
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    container_name: db_fk
+  grafana:
+    image: grafana/grafana-enterprise
+    ports:
+      - 9090:3000
+    container_name: grafana
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9091:9090
+    container_name: prometheus
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+    command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yaml
+    depends_on:
+    - server
+networks:
+  fake-instagram:
+    external: true
