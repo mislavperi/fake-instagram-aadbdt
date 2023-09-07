@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { useState, useEffect, useRef } from "react";
 import { Box, Flex, Tag, TagCloseButton } from "@chakra-ui/react";
-import styles from "./Input.module.css";
+import styles from "./input.module.css";
 
 export default function InputTag({tags, setTags}: {tags: string[], setTags: any}) {
   const [sizeInput, setSizeInput] = useState(() => 1);

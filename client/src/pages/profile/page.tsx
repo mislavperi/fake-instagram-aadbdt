@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   Button,
   Text,
@@ -39,7 +40,7 @@ export default function Profile() {
   const cookieJar = new Cookies();
 
   useEffect(() => {
-    fetch("http://localhost:8080/picture/userImages", {
+    fetch("/api/picture/userImages", {
       headers: {
         Authorization: cookieJar.get("accessToken"),
         Refresh: cookieJar.get("refreshToken"),

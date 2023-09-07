@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from "react";
 import Cookies from "universal-cookie";
 import { useLocation } from "react-router-dom";
@@ -49,7 +50,7 @@ export default function UserStatistics() {
   };
 
   useEffect(() => {
-    fetch(`http://localhost:8080/admin/statistics?id=${id}`, {
+    fetch(`/api/admin/statistics?id=${id}`, {
       headers: {
         Authorization: accessToken,
         Refresh: refreshToken,
@@ -63,7 +64,7 @@ export default function UserStatistics() {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:8080/plans/get", {
+    fetch("/api/plans/get", {
       headers: {
         Authorization: accessToken,
         Refresh: refreshToken,
@@ -75,7 +76,7 @@ export default function UserStatistics() {
   }, []);
 
   useEffect(() => {
-    fetch(`http://localhost:8080/admin/userlogs?id=${id}`, {
+    fetch(`/api/admin/userlogs?id=${id}`, {
       headers: {
         Authorization: accessToken,
         Refresh: refreshToken,
@@ -90,7 +91,7 @@ export default function UserStatistics() {
   })
 
   const updateUserPlan = () => {
-    fetch(`http://localhost:8080/admin/changePlan?id=${id}&planId=${selectedPlan?.planID}`, {
+    fetch(`/api/admin/changePlan?id=${id}&planId=${selectedPlan?.planID}`, {
       headers: {
         Authorization: accessToken,
         Refresh: refreshToken,

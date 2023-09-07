@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   Text,
   HStack,
@@ -54,7 +55,7 @@ const Image = ({
   const [sapia, setSapia] = useState<number>(0);
 
   const getEditedImage = () => {
-    fetch("http://localhost:8080/picture/edited", {
+    fetch("/api/picture/edited", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

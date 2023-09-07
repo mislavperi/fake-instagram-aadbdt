@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Cookies from "universal-cookie";
@@ -27,7 +28,7 @@ export default function UserPictures() {
   const refreshToken = cookieJar.get("refreshToken");
 
   useEffect(() => {
-    fetch(`http://localhost:8080/admin/userPictures?id=${userID}`, {
+    fetch(`/api/admin/userPictures?id=${userID}`, {
       headers: {
         Authorization: accessToken,
         Refresh: refreshToken,

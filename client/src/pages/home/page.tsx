@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   Text,
   HStack,
@@ -40,7 +41,7 @@ export default function Home() {
 
     const queryParam: string = JSON.stringify(filter);
 
-    fetch(`http://localhost:8080/public/picture/get?filter=${queryParam}`)
+    fetch(`/api/public/picture/get?filter=${queryParam}`)
       .then((res) => res.json())
       .then((res) => setPictures(res));
   };

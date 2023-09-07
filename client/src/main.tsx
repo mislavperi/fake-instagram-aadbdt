@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import Login from "./pages/auth/login/page.tsx";
+import Register from "./pages/auth/register/page.tsx";
 import Home from "./pages/home/page.tsx";
 import Auth from "./components/auth.tsx";
 import Profile from "./pages/profile/page.tsx";
@@ -32,6 +33,10 @@ const router = createBrowserRouter([
       {
         path: "login",
         element: <Login />,
+      },
+      {
+        path: "register",
+        element: <Register />,
       },
       {
         path: "upload",

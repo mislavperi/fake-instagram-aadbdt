@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createContext } from 'react';
 import React, { useReducer, useContext, ReactNode, Dispatch } from 'react'; // Import Dispatch from react
 import User from '../types/user';

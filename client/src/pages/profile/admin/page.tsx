@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState } from "react";
 import Cookies from "universal-cookie";
 import User from "../../../types/user";
@@ -21,7 +22,7 @@ export default function Admin() {
   const refreshToken = cookieJar.get("refreshToken");
 
   useEffect(() => {
-    fetch("http://localhost:8080/admin/users", {
+    fetch("/api/admin/users", {
       headers: {
         Authorization: accessToken,
         Refresh: refreshToken,

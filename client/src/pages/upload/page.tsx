@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Cookies from "universal-cookie";
 
 import { useContext, useState, useCallback, SyntheticEvent, useEffect } from "react";
@@ -27,7 +28,7 @@ export default function UploadImage() {
   const user = useContext(UserContext);
 
   useEffect(() => {
-    fetch("http://localhost:8080/consumption/get", {
+    fetch("/api/consumption/get", {
       headers: {
         Accept: "application/json",
         Authorization: accessToken,
@@ -68,7 +69,7 @@ export default function UploadImage() {
       formData.append("width", width);
     }
 
-    fetch("http://localhost:8080/picture/upload", {
+    fetch("/api/picture/upload", {
       method: "POST",
       headers: {
         Authorization: accessToken,

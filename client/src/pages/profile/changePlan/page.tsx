@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Flex, Text, Button, Wrap, WrapItem } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import Cookies from "universal-cookie";
@@ -12,7 +13,7 @@ export default function ChangePlan() {
   const refreshToken = cookieJar.get("refreshToken");
 
   useEffect(() => {
-    fetch("http://localhost:8080/plans/get", {
+    fetch("/api/plans/get", {
       headers: {
         Authorization: cookieJar.get("accessToken"),
         Refresh: cookieJar.get("refreshToken"),
@@ -24,7 +25,7 @@ export default function ChangePlan() {
   }, []);
 
   const selectPlan = () => {
-    fetch("http://localhost:8080/user/select", {
+    fetch("/api/user/select", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

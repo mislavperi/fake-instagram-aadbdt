@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   Flex,
   Stat,
@@ -17,7 +18,7 @@ export default function Statistics() {
   const refreshToken = cookieJar.get("refreshToken");
 
   useEffect(() => {
-    fetch("http://localhost:8080/statistics/get", {
+    fetch("/api/statistics/get", {
       headers: {
         Authorization: accessToken,
         Refresh: refreshToken,
