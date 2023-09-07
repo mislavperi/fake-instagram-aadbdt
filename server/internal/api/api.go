@@ -12,19 +12,19 @@ import (
 )
 
 type API struct {
-	gin  *gin.Engine
+	Gin  *gin.Engine
 	port uint
 }
 
 func NewAPI(userController *controllers.UserController, planController *controllers.PlanController, pictureController *controllers.PictureController, uploadController *controllers.UploadController, port uint) *API {
 	api := &API{
-		gin:  gin.Default(),
+		Gin:  gin.Default(),
 		port: port,
 	}
-	api.gin.Use(
+	api.Gin.Use(
 		cors.New(
 			cors.Config{
-				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080", "http://localhost:5173", "http://localhost:9090", "http://localhost:9091"},
+				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080", "http://localhost", "http://localhost:5173", "http://localhost:9090", "http://localhost:9091"},
 				AllowMethods:     []string{"POST", "GET"},
 				AllowHeaders:     []string{"Content-Type", "Accept", "Authorization", "Refresh"},
 				AllowCredentials: true,
@@ -39,7 +39,7 @@ func (a *API) Start(ctx context.Context) {
 	errs := make(chan error, 1)
 
 	go func() {
-		errs <- a.gin.Run(fmt.Sprintf(":%d", a.port))
+		errs <- a.Gin.Run(fmt.Sprintf(":%d", a.port))
 	}()
 
 	select {
@@ -51,25 +51,25 @@ func (a *API) Start(ctx context.Context) {
 }
 
 func (a *API) registerRoutes(userController *controllers.UserController, planController *controllers.PlanController, pictureController *controllers.PictureController, uploadController *controllers.UploadController) {
-	metricsGroup := a.gin.Group("/metrics")
+	metricsGroup := a.Gin.Group("/metrics")
 	metricsGroup.GET("/", func(ctx *gin.Context) {
 		h := promhttp.Handler()
 
 		h.ServeHTTP(ctx.Writer, ctx.Request)
 	})
 
-	authGroup := a.gin.Group("/auth")
+	authGroup := a.Gin.Group("/api/auth")
 	authGroup.POST("/register", userController.RegisterUser())
 	authGroup.POST("/login", userController.Login())
 	authGroup.POST("/gh_login", userController.LoginGithub())
 	authGroup.POST("/g_login", userController.LoginGoogle())
 
-	userGroup := a.gin.Group("/user")
+	userGroup := a.Gin.Group("/api/user")
 	userGroup.Use(middlewares.JwtTokenCheck())
 	userGroup.GET("/whoami", userController.Whoami())
 	userGroup.POST("/select", userController.SetUserPlan())
 
-	adminGroup := a.gin.Group("/admin")
+	adminGroup := a.Gin.Group("/api/admin")
 	adminGroup.Use(middlewares.JwtTokenCheck())
 	adminGroup.GET("/users", userController.GetAllUsers())
 	adminGroup.GET("/statistics", uploadController.GetUserStatistics())
@@ -77,13 +77,13 @@ func (a *API) registerRoutes(userController *controllers.UserController, planCon
 	adminGroup.GET("/userPictures", pictureController.GetSpecificUserImages())
 	adminGroup.GET("/userlogs", userController.GetUserLogs())
 
-	planGroup := a.gin.Group("/plans")
+	planGroup := a.Gin.Group("/api/plans")
 	planGroup.GET("/get", planController.GetPlans())
 
-	unauthorizedPictureGroup := a.gin.Group("/public/picture")
+	unauthorizedPictureGroup := a.Gin.Group("/api/public/picture")
 	unauthorizedPictureGroup.GET("/get", pictureController.GetImages())
 
-	pictureGroup := a.gin.Group("/picture")
+	pictureGroup := a.Gin.Group("/api/picture")
 	pictureGroup.Use(middlewares.JwtTokenCheck())
 	pictureGroup.POST("/upload", pictureController.UploadImage())
 	pictureGroup.GET("/userImages", pictureController.GetUserImages())
@@ -91,7 +91,7 @@ func (a *API) registerRoutes(userController *controllers.UserController, planCon
 	pictureGroup.POST("/update", pictureController.UpdateImage())
 	pictureGroup.POST("/edited", pictureController.GetEditedImage())
 
-	uploadGroup := a.gin.Group("/statistics")
+	uploadGroup := a.Gin.Group("/api/statistics")
 	uploadGroup.Use(middlewares.JwtTokenCheck())
 	uploadGroup.GET("/get", uploadController.GetStatistics())
 }

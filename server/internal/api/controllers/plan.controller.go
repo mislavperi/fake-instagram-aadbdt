@@ -10,7 +10,7 @@ import (
 type PlanService interface {
 	GetPlans() ([]models.Plan, error)
 }
-
+//go:generate mockery --output=./tests/mocks --name=PlanService
 type PlanController struct {
 	planService PlanService
 }

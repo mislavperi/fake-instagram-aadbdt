@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
 )
-
+//go:generate mockery --output=./tests/mocks --name=UploadService
 type UploadService interface {
 	GetConsumption(userID int) error
 	GetStatistics(userID int) (*models.Plan, *uint64, *int, *int, error)

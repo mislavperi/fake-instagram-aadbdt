@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
 	customerrors "github.com/mislavperi/fake-instagram-aadbdt/server/utils/errors"
@@ -41,9 +42,12 @@ func (r *UserRepository) Create(firstName string, lastName string, username stri
 
 func (r *UserRepository) CheckCredentials(username string, password string) (*int, error) {
 	var result models.User
-	if err := r.Database.First(&result).Where(&models.User{Username: username}).Error; err != nil {
+	fmt.Println(username)
+	if err := r.Database.Where("username = ?", username).First(&result).Error; err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
+	fmt.Println(result, password)
 	err := bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(password))
 	if err != nil {
 		return nil, customerrors.NewInvalidCredentialsError(err.Error())
@@ -53,7 +57,7 @@ func (r *UserRepository) CheckCredentials(username string, password string) (*in
 
 func (r *UserRepository) FetchUserInformation(id int) (*models.User, error) {
 	var result models.User
-	if err := r.Database.Preload("Role").First(&result).Where("id = ?", id).Error; err != nil {
+	if err := r.Database.Preload("Role").Where("id = ?", id).First(&result).Error; err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -61,7 +65,7 @@ func (r *UserRepository) FetchUserInformation(id int) (*models.User, error) {
 
 func (r *UserRepository) AuthenticateGithubUser(mappedUser models.User) (*int, error) {
 	var result *models.User
-	if err := r.Database.First(&result).Where(&models.User{Username: mappedUser.Username}).Error; err != nil {
+	if err := r.Database.Where("username = ?", mappedUser.Username).First(&result).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
@@ -81,7 +85,7 @@ func (r *UserRepository) AuthenticateGithubUser(mappedUser models.User) (*int, e
 
 func (r *UserRepository) AuthenticateGoogleUser(mappedUser models.User) (*int, error) {
 	var result *models.User
-	if err := r.Database.First(&result).Where(&models.User{Username: mappedUser.Username}).Error; err != nil {
+	if err := r.Database.Where(&models.User{Username: mappedUser.Username}).First(&result).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
@@ -106,4 +110,11 @@ func (r *UserRepository) GetAllUsers() ([]*models.User, error) {
 	}
 
 	return users, nil
+}
+
+func (r *UserRepository) RegisterUser(newUser *models.User) error {
+	if err := r.Database.Preload("Role").Create(&newUser).Error; err != nil {
+		return err
+	}
+	return nil
 }

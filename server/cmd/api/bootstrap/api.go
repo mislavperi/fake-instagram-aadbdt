@@ -29,7 +29,7 @@ func Api() (*api.API, error) {
 	userRepository := repositories.NewUserRepository(db)
 	userService := services.NewUserService(userRepository, userMapper, planService, planLogService, logService, userMetrics, config.Cfg.Github.ClientID, config.Cfg.Github.ClientSecret, config.Cfg.Auth.SecretKey)
 	uploadRepository := repositories.NewDailyUploadRepository(db)
-	uploadService := services.NewDailyUploadService(uploadRepository, planLogService, planService, userService)
+	uploadService := services.NewDailyUploadService(uploadRepository, planLogService, planService, userService, logService)
 	s3Repository := repository.NewS3Repository(config.Cfg.Aws.Bucket, config.Cfg.Aws.Region, config.Cfg.Aws.AccessKeyId, config.Cfg.Aws.SecretAccessKey, "")
 
 	planController := controllers.NewPlanController(planService)

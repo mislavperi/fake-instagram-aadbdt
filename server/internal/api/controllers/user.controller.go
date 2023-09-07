@@ -12,6 +12,7 @@ import (
 	customerrors "github.com/mislavperi/fake-instagram-aadbdt/server/utils/errors"
 )
 
+//go:generate mockery --output=./tests/mocks --name=UserService
 type UserService interface {
 	Create(firstName string, lastName string, username string, email string, password string) error
 	Login(username string, password string) (*string, *string, error)
@@ -19,9 +20,9 @@ type UserService interface {
 	SelectUserPlan(id int, plan models.Plan) error
 	AuthenticateGoogleUser(credentials models.GoogleToken) (*string, *string, error)
 	AuthenticateGithubUser(credentials models.GHCredentials) (*string, *string, error)
-	GetAllUsers() ([]models.User, error)
+	GetAllUsers(adminID int) ([]models.User, error)
 	InsertAdminPlanChange(adminID int, userID int, planID int) error
-	GetUserLogs(userID int) ([]models.Log, error)
+	GetUserLogs(userID int, adminID int) ([]models.Log, error)
 }
 
 type UserController struct {
@@ -129,7 +130,7 @@ func (c *UserController) Login() gin.HandlerFunc {
 			ctx.AbortWithError(http.StatusInternalServerError, nil)
 			return
 		}
-		accessToken, refreshToken, err := c.UserService.Login(user.Email, user.Password)
+		accessToken, refreshToken, err := c.UserService.Login(user.Username, user.Password)
 		if err != nil {
 			if customerrors.IsInvalidCredentialsError(err) {
 				ctx.AbortWithError(http.StatusUnauthorized, errors.New("invalid credentials"))
@@ -179,7 +180,12 @@ func (c *UserController) LoginGoogle() gin.HandlerFunc {
 
 func (c *UserController) GetAllUsers() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		users, err := c.UserService.GetAllUsers()
+		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		users, err := c.UserService.GetAllUsers(identifier)
 		if err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
@@ -196,7 +202,13 @@ func (c *UserController) GetUserLogs() gin.HandlerFunc {
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 		}
-		logs, err := c.UserService.GetUserLogs(userID)
+		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		logs, err := c.UserService.GetUserLogs(userID, identifier)
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 		}

@@ -71,6 +71,7 @@ func NewUserService(userRepository UserRepository, userMapper UserMapper, planSe
 		ghClientId:     ghClientId,
 		ghClientSecret: ghClientSecret,
 		secretKey:      secretKey,
+		metrics:        metrics,
 	}
 }
 
@@ -220,6 +221,7 @@ func (s *UserService) AuthenticateGithubUser(credentials models.GHCredentials) (
 	}
 	id, err := s.UserRepository.AuthenticateGithubUser(mappedUser)
 	if err != nil {
+		fmt.Println(err)
 		return nil, nil, err
 	}
 	accessToken, refreshToken, err := s.generateTokenPair(*id)
@@ -285,19 +287,21 @@ func (s *UserService) AuthenticateGoogleUser(credentials models.GoogleToken) (*s
 	return accessToken, refreshToken, nil
 }
 
-func (s *UserService) GetAllUsers() ([]models.User, error) {
+func (s *UserService) GetAllUsers(adminID int) ([]models.User, error) {
 	users, err := s.UserRepository.GetAllUsers()
 	if err != nil {
 		return nil, err
 	}
 	mappedUsers := s.userMapper.MapDTOToUsers(users)
+	s.logService.LogAction(adminID, enums.GET_USERS.String())
 	return mappedUsers, nil
 }
 
-func (s *UserService) GetUserLogs(userID int) ([]models.Log, error) {
+func (s *UserService) GetUserLogs(userID int, adminID int) ([]models.Log, error) {
 	logs, err := s.logService.GetUserLogs(userID)
 	if err != nil {
 		return nil, err
 	}
+	s.logService.LogAction(adminID, enums.GET_USER_LOGS.String())
 	return logs, nil
 }

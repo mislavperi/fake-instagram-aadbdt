@@ -6,27 +6,51 @@ import (
 
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
 	psqlmodels "github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
+	enums "github.com/mislavperi/fake-instagram-aadbdt/server/utils/enums/action"
 )
 
+//go:generate mockery --output=./tests/mocks --name=DailyUploadRepository
 type DailyUploadRepository interface {
 	InsertLog(userID int64, pictureID int64, uploadSizeKb uint64) error
 	GetUserConsumption(userId int) ([]*psqlmodels.DailyUpload, error)
 }
 
+//go:generate mockery --output=./tests/mocks --name=UserServiceUpload
+type UserServiceUpload interface {
+	GetUserInformation(id int) (*models.User, error)
+}
+
+//go:generate mockery --output=./tests/mocks --name=PlanLogServiceUpload
+type PlanLogServiceUpload interface {
+	GetUserPlan(userID int64) (*psqlmodels.PlanLog, error)
+}
+
+//go:generate mockery --output=./tests/mocks --name=PlanServiceUpload
+type PlanServiceUpload interface {
+	GetPlanByID(planID int) (*models.Plan, error)
+}
+
+//go:generate mockery --output=./tests/mocks --name=LogServiceUpload
+type LogServiceUpload interface {
+	LogAction(userID int, action string) error
+}
+
 type DailyUploadService struct {
 	dailyUploadRepository DailyUploadRepository
 
-	planLogService *PlanLogService
-	planService    *PlanService
-	userService    *UserService
+	planLogService PlanLogServiceUpload
+	planService    PlanServiceUpload
+	userService    UserServiceUpload
+	logService     LogServiceUpload
 }
 
-func NewDailyUploadService(dailyUploadRepository DailyUploadRepository, planLogService *PlanLogService, planService *PlanService, userService *UserService) *DailyUploadService {
+func NewDailyUploadService(dailyUploadRepository DailyUploadRepository, planLogService PlanLogServiceUpload, planService PlanServiceUpload, userService UserServiceUpload, logService LogServiceUpload) *DailyUploadService {
 	return &DailyUploadService{
 		dailyUploadRepository: dailyUploadRepository,
 		planLogService:        planLogService,
 		planService:           planService,
 		userService:           userService,
+		logService:            logService,
 	}
 }
 
@@ -64,9 +88,10 @@ func (s *DailyUploadService) GetConsumption(userID int) error {
 		return errors.New("total consumption limit has been breached")
 	}
 
-	if uint32(len(todayUploads)) > planLog.Plan.DailyUploadLimit {
+	if uint32(len(todayUploads)) >= planLog.Plan.DailyUploadLimit {
 		return errors.New("daily upload limit has been reached")
 	}
+	s.logService.LogAction(userID, enums.GET_CONSUMPTION.String())
 
 	return nil
 }
@@ -93,12 +118,16 @@ func (s *DailyUploadService) GetStatistics(userID int) (*models.Plan, *uint64, *
 		}
 	}
 
-	mappedPlan := s.planService.planMapper.MapPlan(&planLog.Plan)
+	mappedPlan, err := s.planService.GetPlanByID(int(planLog.PlanID))
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
 
 	totalConsumptionCount := len(consumption)
 	todayUploadsCount := len(todayUploads)
+	s.logService.LogAction(userID, enums.GET_CONSUMPTION.String())
 
-	return &mappedPlan, &totalConsumptionKb, &todayUploadsCount, &totalConsumptionCount, nil
+	return mappedPlan, &totalConsumptionKb, &todayUploadsCount, &totalConsumptionCount, nil
 }
 
 func (s *DailyUploadService) GetExpandedStatistics(userID int) (*models.User, *models.Plan, *uint64, *int, *int, error) {
@@ -128,10 +157,14 @@ func (s *DailyUploadService) GetExpandedStatistics(userID int) (*models.User, *m
 		}
 	}
 
-	mappedPlan := s.planService.planMapper.MapPlan(&planLog.Plan)
+	mappedPlan, err := s.planService.GetPlanByID(int(planLog.PlanID))
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
 
 	totalConsumptionCount := len(consumption)
 	todayUploadsCount := len(todayUploads)
+	s.logService.LogAction(userID, enums.GET_CONSUMPTION.String())
 
-	return user, &mappedPlan, &totalConsumptionKb, &todayUploadsCount, &totalConsumptionCount, nil
+	return user, mappedPlan, &totalConsumptionKb, &todayUploadsCount, &totalConsumptionCount, nil
 }

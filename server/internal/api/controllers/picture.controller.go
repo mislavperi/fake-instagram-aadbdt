@@ -15,6 +15,7 @@ type PictureController struct {
 	pictureService PictureService
 }
 
+//go:generate mockery --output=./tests/mocks --name=PictureService
 type PictureService interface {
 	UploadImage(file multipart.File, title string, description string, hashtags []string, userID int, height string, width string, fileExt string) error
 	GetImages(filter models.Filter) ([]models.Picture, error)
