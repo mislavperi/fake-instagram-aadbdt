@@ -1,8 +1,10 @@
 package api_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/api"
@@ -27,7 +29,17 @@ func TestRoutes(t *testing.T) {
 	)
 
 	t.Run("TestPlanRoute", func(t *testing.T) {
-		planService.On("GetPlans").Return([]models.Plan{}, nil)
+		plan := models.Plan{
+			ID:                1,
+			PlanName:          "PlanOne",
+			UploadLimitSizeKb: 1,
+			DailyUploadLimit:  1,
+			Cost:              1,
+		}
+
+		planService.On("GetPlans").Return([]models.Plan{
+			plan,
+		}, nil)
 		req, err := http.NewRequest("GET", "/api/plans/get", nil)
 		if err != nil {
 			t.Fatal(err)
@@ -37,10 +49,20 @@ func TestRoutes(t *testing.T) {
 		if recorder.Code != http.StatusOK {
 			t.Errorf("expected status 200 but got %d", recorder.Code)
 		}
+		var expectedPlan []models.Plan
+		json.NewDecoder(recorder.Body).Decode(&expectedPlan)
+
+		if !reflect.DeepEqual(expectedPlan, []models.Plan{plan}) {
+			t.Errorf("expected plan to be same, but it isn't")
+		}
 	})
 
 	t.Run("TestPictures", func(t *testing.T) {
-		pictureService.On("GetImages", mock.Anything).Return([]models.Picture{}, nil)
+		picture := models.Picture{
+			Title: "Image",
+		}
+
+		pictureService.On("GetImages", mock.Anything).Return([]models.Picture{picture}, nil)
 		req, err := http.NewRequest("GET", "/api/public/picture/get?filter={}", nil)
 		if err != nil {
 			t.Fatal(err)
@@ -49,6 +71,11 @@ func TestRoutes(t *testing.T) {
 		a.Gin.ServeHTTP(recorder, req)
 		if recorder.Code != http.StatusOK {
 			t.Errorf("expected status 200 but got %d", recorder.Code)
+		}
+		var expectedImage []models.Picture
+		json.NewDecoder(recorder.Body).Decode(&expectedImage)
+		if !reflect.DeepEqual(expectedImage, []models.Picture{picture}) {
+			t.Errorf("expected plan to be same, but it isn't")
 		}
 	})
 }

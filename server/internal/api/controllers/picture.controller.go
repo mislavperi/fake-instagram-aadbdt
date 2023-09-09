@@ -37,19 +37,25 @@ func (c *PictureController) UploadImage() gin.HandlerFunc {
 		ctx.ShouldBind(&pictureUpload)
 		var parsedHashtags []string
 		if err := json.Unmarshal([]byte(pictureUpload.Hashtags), &parsedHashtags); err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 		}
 		file, err := pictureUpload.Picture.Open()
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
+			return
 		}
 		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusBadRequest)
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
 			return
 		}
 
-		c.pictureService.UploadImage(file, pictureUpload.Title, pictureUpload.Description, parsedHashtags, identifier, pictureUpload.Height, pictureUpload.Width, pictureUpload.Format)
+		err = c.pictureService.UploadImage(file, pictureUpload.Title, pictureUpload.Description, parsedHashtags, identifier, pictureUpload.Height, pictureUpload.Width, pictureUpload.Format)
+		if err != nil {
+
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
+			return
+		}
 		ctx.JSON(http.StatusOK, nil)
 	}
 }
@@ -60,12 +66,13 @@ func (c *PictureController) GetImages() gin.HandlerFunc {
 		requestFilter := ctx.Query("filter")
 		err := json.Unmarshal([]byte(requestFilter), &clientFilter)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		mappedPictures, err := c.pictureService.GetImages(clientFilter)
 		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, err)
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		ctx.JSON(http.StatusOK, mappedPictures)
@@ -76,13 +83,13 @@ func (c *PictureController) GetUserImages() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 
 		mappedPictures, err := c.pictureService.GetUserImages(identifier)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 		}
 		ctx.JSON(http.StatusOK, mappedPictures)
 	}
@@ -94,12 +101,13 @@ func (c *PictureController) GetSpecificUserImages() gin.HandlerFunc {
 		incReqParams := ctx.Query("id")
 		err := json.Unmarshal([]byte(incReqParams), &userID)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		mappedPictures, err := c.pictureService.GetUserImages(userID)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		ctx.JSON(http.StatusOK, mappedPictures)
@@ -112,12 +120,13 @@ func (c *PictureController) GetPictureByID() gin.HandlerFunc {
 		incRequestParams := ctx.Query("id")
 		err := json.Unmarshal([]byte(incRequestParams), &id)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		mappedPicture, err := c.pictureService.GetImageByID(id)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 		}
 		ctx.JSON(http.StatusOK, mappedPicture)
 	}
@@ -129,13 +138,13 @@ func (c *PictureController) UpdateImage() gin.HandlerFunc {
 		ctx.ShouldBind(&updateImageRequest)
 		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusBadRequest)
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
 			return
 		}
 
 		err = c.pictureService.UpdateImageInformation(updateImageRequest.ID, updateImageRequest.Description, updateImageRequest.Hashtags, identifier)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		ctx.JSON(http.StatusOK, nil)
@@ -148,7 +157,8 @@ func (c *PictureController) GetEditedImage() gin.HandlerFunc {
 		ctx.ShouldBind(&editImageRequests)
 		image, err := c.pictureService.GetEditedImage(editImageRequests.ID, editImageRequests.Height, editImageRequests.Width, editImageRequests.Format, editImageRequests.Sepia, editImageRequests.Blur)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		ctx.Data(http.StatusOK, "application/octet-stream", image.Bytes())

@@ -2,13 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
 )
+
 //go:generate mockery --output=./tests/mocks --name=UploadService
 type UploadService interface {
 	GetConsumption(userID int) error
@@ -30,12 +30,13 @@ func (c *UploadController) GetStatistics() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		identifier, err := strconv.Atoi(ctx.GetHeader("identifier"))
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		plan, totalConsumptionKb, totalDailyUploadCount, totalConsumptionCount, err := c.uploadService.GetStatistics(identifier)
 		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, err)
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 		}
 
 		statisticResponse := models.Statistics{
@@ -55,14 +56,14 @@ func (c *UploadController) GetUserStatistics() gin.HandlerFunc {
 		requestId := ctx.Query("id")
 		err := json.Unmarshal([]byte(requestId), &userID)
 		if err != nil {
-			fmt.Println(err)
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 
 		user, plan, totalConsumptionKb, totalDailyUploadCount, totalConsumptionCount, err := c.uploadService.GetExpandedStatistics(userID)
 		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, err)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 		}
 
 		statisticResponse := models.ExpandedStatistics{

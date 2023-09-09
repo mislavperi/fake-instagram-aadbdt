@@ -28,6 +28,7 @@ func TestGetConsumption_TotalConsumptionExceedsLimit(t *testing.T) {
 			UploadLimitSizeKb: 2000,
 		},
 	}, nil)
+	ls.On("LogAction", mock.Anything, mock.Anything).Return(nil)
 
 	// Call the function
 	err := dailyUploadService.GetConsumption(123)
@@ -46,7 +47,6 @@ func TestGetConsumption_DailyUploadLimitExceeded(t *testing.T) {
 	us := &mocks.UserServiceUpload{}
 	ls := &mocks.LogServiceUpload{}
 	dailyUploadService := factories.NewDailyUploadService(repo, pls, ps, us, ls)
-
 	repo.On("GetUserConsumption", mock.Anything).Return([]*psqlmodels.DailyUpload{
 		{
 			ID:           1,
@@ -64,13 +64,13 @@ func TestGetConsumption_DailyUploadLimitExceeded(t *testing.T) {
 			CreatedAt:    time.Now(),
 		},
 	}, nil)
-
 	pls.On("GetUserPlan", mock.Anything).Return(&psqlmodels.PlanLog{
 		Plan: psqlmodels.Plan{
 			DailyUploadLimit:  3,
 			UploadLimitSizeKb: 2000,
 		},
 	}, nil)
+	ls.On("LogAction", mock.Anything, mock.Anything).Return(nil)
 
 	// Call the function
 	err := dailyUploadService.GetConsumption(123)
@@ -89,7 +89,6 @@ func TestGetConsumption_NoError(t *testing.T) {
 	us := &mocks.UserServiceUpload{}
 	ls := &mocks.LogServiceUpload{}
 	dailyUploadService := factories.NewDailyUploadService(repo, pls, ps, us, ls)
-
 	repo.On("GetUserConsumption", mock.Anything).Return([]*psqlmodels.DailyUpload{
 		{
 			ID:           1,
@@ -106,13 +105,13 @@ func TestGetConsumption_NoError(t *testing.T) {
 			UploadSizeKb: 1,
 		},
 	}, nil)
-
 	pls.On("GetUserPlan", mock.Anything).Return(&psqlmodels.PlanLog{
 		Plan: psqlmodels.Plan{
 			DailyUploadLimit:  3,
 			UploadLimitSizeKb: 2000,
 		},
 	}, nil)
+	ls.On("LogAction", mock.Anything, mock.Anything).Return(nil)
 
 	err := dailyUploadService.GetConsumption(123)
 

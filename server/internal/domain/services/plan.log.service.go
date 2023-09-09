@@ -39,7 +39,6 @@ func (s *PlanLogService) InsertAdminPlanChangeLog(userID int64, planID int64) er
 		return err
 	}
 	s.logService.LogAction(int(userID), enums.GET_CONSUMPTION.String())
-
 	return nil
 }
 
@@ -51,4 +50,13 @@ func (s *PlanLogService) GetUserPlan(userID int64) (*psqlmodels.PlanLog, error) 
 	s.logService.LogAction(int(userID), enums.GET_CONSUMPTION.String())
 
 	return planLog, nil
+}
+
+func (s *PlanLogService) SetDefaultPlan(userID int64) error {
+	err := s.planLogRepository.InsertPlanChange(userID, 1)
+	if err != nil {
+		return err
+	}
+	s.logService.LogAction(int(userID), enums.GET_CONSUMPTION.String())
+	return nil
 }

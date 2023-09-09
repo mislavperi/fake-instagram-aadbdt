@@ -13,7 +13,8 @@ import {
   Stack,
   NumberInput,
   NumberInputField,
-  Flex
+  Flex,
+  useToast
 } from "@chakra-ui/react";
 
 import { UserContext } from "../../context/userContext";
@@ -27,15 +28,8 @@ export default function UploadImage() {
 
   const user = useContext(UserContext);
 
-  useEffect(() => {
-    fetch("/api/consumption/get", {
-      headers: {
-        Accept: "application/json",
-        Authorization: accessToken,
-        Refresh: refreshToken
-      }
-    })
-  },[])
+  const toast = useToast()
+
 
   const [picture, setPicture ] = useState<string>();
   const [title, setTitle] = useState<string>("");
@@ -76,7 +70,7 @@ export default function UploadImage() {
         Refresh: refreshToken,
       },
       body: formData,
-    });
+    }).then(res => res.json()).then(res => toast)
   }
 
   return (

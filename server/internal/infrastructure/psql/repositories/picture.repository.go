@@ -4,6 +4,7 @@ import (
 	"mime/multipart"
 	"time"
 
+	"github.com/lib/pq"
 	domainmodels "github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
 	"github.com/mislavperi/fake-instagram-aadbdt/server/utils/errors"
@@ -44,6 +45,7 @@ func (r *PictureRepository) UploadPicture(title string, description string, hash
 func (r *PictureRepository) GetImages(filter domainmodels.Filter) ([]*models.Picture, error) {
 	var images []*models.Picture
 	databaseFilter := r.Database.Preload("User")
+
 	if filter.Title != nil {
 		databaseFilter.Where("title = ?", filter.Title)
 	}
@@ -64,7 +66,7 @@ func (r *PictureRepository) GetImages(filter domainmodels.Filter) ([]*models.Pic
 
 	}
 	if filter.Hashtags != nil {
-		databaseFilter.Or("hashtags = ?", filter.Hashtags)
+		databaseFilter.Or("hashtags = ?", pq.Array(filter.Hashtags))
 	}
 	if filter.User != nil {
 		databaseFilter.Or("user.username = ?", filter.User)

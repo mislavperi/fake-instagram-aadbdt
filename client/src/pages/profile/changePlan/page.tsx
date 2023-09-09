@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Flex, Text, Button, Wrap, WrapItem } from "@chakra-ui/react";
+import { Flex, Text, Button, Wrap, WrapItem, useToast } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import Cookies from "universal-cookie";
 import Plan from "../../../types/plan";
@@ -8,6 +8,8 @@ export default function ChangePlan() {
   const cookieJar = new Cookies();
   const [plans, setPlans] = useState<Plan[]>();
   const [selectedPlan, setSelectedPlan] = useState<Plan>();
+
+  const toast = useToast()
 
   const accessToken = cookieJar.get("accessToken");
   const refreshToken = cookieJar.get("refreshToken");
@@ -34,7 +36,12 @@ export default function ChangePlan() {
         Refresh: refreshToken,
       },
       body: JSON.stringify(selectedPlan),
-    });
+    })
+    .then(res => res.json()).then(res => {
+      toast({
+        description: res,
+      });
+    })
   };
 
   return plans != null ? (

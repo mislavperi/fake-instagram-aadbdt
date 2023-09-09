@@ -32,15 +32,18 @@ export default function Home() {
   const getPictures = () => {
 
     filter.dateRange = {gte: null, lte: null}
-    if (fromDate !== undefined && filter.dateRange != undefined) {
+    if (fromDate !== null && filter.dateRange != undefined) {
       filter.dateRange.gte = fromDate
     }
     if (toDate !== undefined && filter.dateRange != undefined) {
       filter.dateRange.lte = toDate
     }
 
-    const queryParam: string = JSON.stringify(filter);
+    if (hashtags.length > 0) {
+      filter.hashtags = hashtags
+    }
 
+    const queryParam: string = JSON.stringify(filter);
     fetch(`/api/public/picture/get?filter=${queryParam}`)
       .then((res) => res.json())
       .then((res) => setPictures(res));

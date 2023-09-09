@@ -100,6 +100,10 @@ func (s *UserService) Create(firstName string, lastName string, username string,
 	if err != nil {
 		return err
 	}
+	err = s.planLogService.SetDefaultPlan(int64(*userID))
+	if err != nil {
+		return err
+	}
 	s.logService.LogAction(*userID, enums.CREATE_USER.String())
 	return nil
 }
@@ -221,7 +225,6 @@ func (s *UserService) AuthenticateGithubUser(credentials models.GHCredentials) (
 	}
 	id, err := s.UserRepository.AuthenticateGithubUser(mappedUser)
 	if err != nil {
-		fmt.Println(err)
 		return nil, nil, err
 	}
 	accessToken, refreshToken, err := s.generateTokenPair(*id)

@@ -24,7 +24,7 @@ func NewAPI(userController *controllers.UserController, planController *controll
 	api.Gin.Use(
 		cors.New(
 			cors.Config{
-				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080", "http://localhost", "http://localhost:5173", "http://localhost:9090", "http://localhost:9091"},
+				AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080", "http://localhost", "http://localhost:5173", "http://localhost:9090", "http://localhost:9091", "http://localhost:8081", "http://localhost:8081"},
 				AllowMethods:     []string{"POST", "GET"},
 				AllowHeaders:     []string{"Content-Type", "Accept", "Authorization", "Refresh"},
 				AllowCredentials: true,
@@ -82,6 +82,7 @@ func (a *API) registerRoutes(userController *controllers.UserController, planCon
 
 	unauthorizedPictureGroup := a.Gin.Group("/api/public/picture")
 	unauthorizedPictureGroup.GET("/get", pictureController.GetImages())
+	unauthorizedPictureGroup.POST("/edited", pictureController.GetEditedImage())
 
 	pictureGroup := a.Gin.Group("/api/picture")
 	pictureGroup.Use(middlewares.JwtTokenCheck())
@@ -89,7 +90,6 @@ func (a *API) registerRoutes(userController *controllers.UserController, planCon
 	pictureGroup.GET("/userImages", pictureController.GetUserImages())
 	pictureGroup.GET("/info", pictureController.GetPictureByID())
 	pictureGroup.POST("/update", pictureController.UpdateImage())
-	pictureGroup.POST("/edited", pictureController.GetEditedImage())
 
 	uploadGroup := a.Gin.Group("/api/statistics")
 	uploadGroup.Use(middlewares.JwtTokenCheck())

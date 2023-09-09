@@ -2,6 +2,8 @@ package services
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"image"
 	"os"
 	"strconv"
@@ -73,6 +75,18 @@ func (s *PictureService) UploadImage(file multipart.File, title string, descript
 	timer := s.metrics.OnUploadStart()
 	defer s.metrics.OnUploadFinish(timer)
 
+	plan, consumption, uploadCount, _, err := s.dailyUploadService.GetStatistics(id)
+	if err != nil {
+		return nil
+	}
+	if plan.DailyUploadLimit <= uint32(*uploadCount) {
+		return errors.New("daily upload breached")
+	}
+
+	if plan.UploadLimitSizeKb <= uint32(*consumption) {
+		return errors.New("total upload limit reached")
+	}
+
 	decodedImage, _, err := image.Decode(file)
 	if err != nil {
 		return err
@@ -107,6 +121,10 @@ func (s *PictureService) UploadImage(file multipart.File, title string, descript
 		return err
 	}
 
+	if uint64(*consumption)*uint64(len(encodedImage.Bytes())/1024) > uint64(plan.UploadLimitSizeKb) {
+		return errors.New("upload will exceed upload limit, denied upload")
+	}
+
 	pictureURI, err := s.s3Repository.UploadToBucket(encodedImage, fileExt)
 	if err != nil {
 		return err
@@ -125,6 +143,7 @@ func (s *PictureService) UploadImage(file multipart.File, title string, descript
 }
 
 func (s *PictureService) GetImages(filter models.Filter) ([]models.Picture, error) {
+	fmt.Printf("%+v", filter)
 	pictures, err := s.pictureRepository.GetImages(filter)
 	if err != nil {
 		return nil, err

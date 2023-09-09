@@ -9,6 +9,7 @@ import {
   Avatar,
   IconButton,
   VStack,
+  useToast
 } from "@chakra-ui/react";
 import { EditIcon, AttachmentIcon } from "@chakra-ui/icons";
 import { useNavigate }  from "react-router-dom";
@@ -17,6 +18,8 @@ export default function Admin() {
   const [users, setUsers] = useState<User[]>([]);
   const cookieJar = new Cookies();
   const navigate = useNavigate();
+
+  const toast = useToast()
 
   const accessToken = cookieJar.get("accessToken");
   const refreshToken = cookieJar.get("refreshToken");
@@ -31,6 +34,12 @@ export default function Admin() {
     }).then((res) => {
       if (res.ok) {
         res.json().then((res) => setUsers(res));
+      } else {
+        res.json().then(res => {
+          toast({
+            description: res,
+          });
+        })
       }
     });
   }, []);

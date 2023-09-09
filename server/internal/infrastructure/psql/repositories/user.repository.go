@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
 	customerrors "github.com/mislavperi/fake-instagram-aadbdt/server/utils/errors"
@@ -42,12 +41,11 @@ func (r *UserRepository) Create(firstName string, lastName string, username stri
 
 func (r *UserRepository) CheckCredentials(username string, password string) (*int, error) {
 	var result models.User
-	fmt.Println(username)
 	if err := r.Database.Where("username = ?", username).First(&result).Error; err != nil {
-		fmt.Println(err)
+
 		return nil, err
 	}
-	fmt.Println(result, password)
+
 	err := bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(password))
 	if err != nil {
 		return nil, customerrors.NewInvalidCredentialsError(err.Error())

@@ -18,7 +18,7 @@ func Api() (*api.API, error) {
 	logMapper := mappers.NewLogMapper()
 	logService := services.NewLogService(logRepository, logMapper)
 	planLogRepository := repositories.NewPlanLogRepository(db)
-	planLogService := services.NewPlanLogService(planLogRepository)
+	planLogService := services.NewPlanLogService(planLogRepository, logService)
 
 	userMetrics := metrics.NewUserMetrics("fake-instagram")
 

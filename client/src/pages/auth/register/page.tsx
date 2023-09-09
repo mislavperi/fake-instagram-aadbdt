@@ -68,16 +68,19 @@ export default function Register() {
     })
       .then((res) => {
         if (!res.ok) {
-          toast({
-            description: "error",
+          res.json().then(res => {
+            toast({
+              description: res,
+            });
+          })
+        } else {
+          res.json().then((_) => {
+            toast({ description: "Success" });
           });
-          return;
         }
-        res.json();
+
       })
-      .then((_) => {
-        toast({ description: "Success" });
-      });
+
   };
 
   return 1 == 1 ? (

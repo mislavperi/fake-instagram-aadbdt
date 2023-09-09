@@ -52,10 +52,10 @@ const Image = ({
   const [height, setHeight] = useState<string>("0");
   const [width, setWidth] = useState<string>("0");
   const [blur, setBlur] = useState<number>(0);
-  const [sapia, setSapia] = useState<number>(0);
+  const [sepia, setSepia] = useState<number>(0);
 
   const getEditedImage = () => {
-    fetch("/api/picture/edited", {
+    fetch("/api/public/picture/edited", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -67,7 +67,7 @@ const Image = ({
         height: height,
         width: width,
         blur: blur / 100,
-        sapia: sapia / 100,
+        sepia: sepia / 100,
       }),
     })
       .then((res) => res.blob())
@@ -145,10 +145,10 @@ const Image = ({
                 <NumberInputField />
               </NumberInput>
               <Box pt={6} pb={2} my={2}>
-                <Text>Sapia: </Text>
+                <Text>Sepia: </Text>
                 <Slider
                   aria-label="slider-ex-6"
-                  onChange={(val) => setSapia(val)}
+                  onChange={(val) => setSepia(val)}
                   defaultValue={0}
                 >
                   <SliderMark value={25} {...labelStyles}>
@@ -161,7 +161,7 @@ const Image = ({
                     75%
                   </SliderMark>
                   <SliderMark
-                    value={sapia}
+                    value={sepia}
                     textAlign="center"
                     bg="blue.500"
                     color="white"
@@ -170,7 +170,7 @@ const Image = ({
                     w="12"
                     borderRadius="10px"
                   >
-                    {sapia}%
+                    {sepia}%
                   </SliderMark>
                   <SliderTrack>
                     <SliderFilledTrack />

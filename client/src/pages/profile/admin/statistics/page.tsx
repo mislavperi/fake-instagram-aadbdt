@@ -24,6 +24,7 @@ import {
   Td,
   TableCaption,
   TableContainer,
+  useToast
 } from "@chakra-ui/react";
 import ExpandedStatistics from "../../../../types/expandedStatistics";
 import Plan from "../../../../types/plan";
@@ -34,6 +35,8 @@ export default function UserStatistics() {
   const [plans, setPlans] = useState<Plan[]>({});
   const [selectedPlan, setSelectedPlan] = useState<Plan>();
   const [logs, setLogs] = useState<Log[]>();
+
+  const toast = useToast()
 
   const cookieJar = new Cookies();
 
@@ -86,9 +89,15 @@ export default function UserStatistics() {
     .then(res => {
       if (res.ok) {
         res.json().then(res => setLogs(res))
+      } else {
+        res.json().then(res => {
+          toast({
+            description: res,
+          });
+        })
       }
     })
-  })
+  }, [])
 
   const updateUserPlan = () => {
     fetch(`/api/admin/changePlan?id=${id}&planId=${selectedPlan?.planID}`, {

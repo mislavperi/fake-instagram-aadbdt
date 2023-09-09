@@ -45,6 +45,12 @@ export default function Edit() {
             res.hashtags
           );
         });
+      } else {
+        res.json().then(res => {
+          toast({
+            description: res,
+          });
+        })
       }
     });
   }, []);
