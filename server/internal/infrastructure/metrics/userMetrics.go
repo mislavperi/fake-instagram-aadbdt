@@ -12,24 +12,21 @@ type UserMetrics struct {
 func NewUserMetrics(namespace string) *UserMetrics {
 	userCreationDuration := prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Name:      "user_creation_duration",
-			Namespace: namespace,
+			Name: "user_creation_duration",
 		},
 		[]string{"creation_type"},
 	)
 
 	userLoginDuration := prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Name:      "user_login_duration",
-			Namespace: namespace,
+			Name: "user_login_duration",
 		},
 		[]string{"login_type"},
 	)
 
 	userLoginCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "user_login_counter",
+			Name: "user_login_counter",
 		},
 		[]string{"login_type"},
 	)

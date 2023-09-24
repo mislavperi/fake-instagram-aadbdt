@@ -11,15 +11,13 @@ type PictureMetrics struct {
 func NewPictureMetrics(namespace string) *PictureMetrics {
 	pictureUploadDuration := prometheus.NewSummary(
 		prometheus.SummaryOpts{
-			Namespace: namespace,
-			Name:      "picture_upload_duration",
+			Name: "picture_upload_duration",
 		},
 	)
 
 	pictureUploadCounter := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "picture_upload_counter",
+			Name: "picture_upload_counter",
 		},
 	)
 
