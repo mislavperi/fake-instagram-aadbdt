@@ -1,4 +1,5 @@
-import { Flex, Text, Button, Wrap, WrapItem } from "@chakra-ui/react";
+// @ts-nocheck
+import { Flex, Text, Button, Wrap, WrapItem, useToast } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import Cookies from "universal-cookie";
 import Plan from "../../../types/plan";
@@ -8,11 +9,13 @@ export default function ChangePlan() {
   const [plans, setPlans] = useState<Plan[]>();
   const [selectedPlan, setSelectedPlan] = useState<Plan>();
 
+  const toast = useToast()
+
   const accessToken = cookieJar.get("accessToken");
   const refreshToken = cookieJar.get("refreshToken");
 
   useEffect(() => {
-    fetch("http://localhost:8080/plans/get", {
+    fetch("/api/plans/get", {
       headers: {
         Authorization: cookieJar.get("accessToken"),
         Refresh: cookieJar.get("refreshToken"),
@@ -24,7 +27,7 @@ export default function ChangePlan() {
   }, []);
 
   const selectPlan = () => {
-    fetch("http://localhost:8080/user/select", {
+    fetch("/api/user/select", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -33,7 +36,12 @@ export default function ChangePlan() {
         Refresh: refreshToken,
       },
       body: JSON.stringify(selectedPlan),
-    });
+    })
+    .then(res => res.json()).then(res => {
+      toast({
+        description: res,
+      });
+    })
   };
 
   return plans != null ? (

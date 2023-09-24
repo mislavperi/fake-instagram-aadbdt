@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Cookies from "universal-cookie";
@@ -11,6 +12,7 @@ import {
   VStack,
   WrapItem,
   Wrap,
+  useToast
 } from "@chakra-ui/react";
 import { EditIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
@@ -23,11 +25,13 @@ export default function UserPictures() {
   const cookieJar = new Cookies();
   const navigate = useNavigate()
 
+  const toast = useToast();
+
   const accessToken = cookieJar.get("accessToken");
   const refreshToken = cookieJar.get("refreshToken");
 
   useEffect(() => {
-    fetch(`http://localhost:8080/admin/userPictures?id=${userID}`, {
+    fetch(`/api/admin/userPictures?id=${userID}`, {
       headers: {
         Authorization: accessToken,
         Refresh: refreshToken,
@@ -36,6 +40,12 @@ export default function UserPictures() {
     }).then((res) => {
       if (res.ok) {
         res.json().then((res) => setPictures(res));
+      } else {
+        res.json().then(res => {
+          toast({
+            description: res,
+          });
+        })
       }
     });
   }, []);

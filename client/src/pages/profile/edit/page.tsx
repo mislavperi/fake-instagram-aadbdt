@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   Flex,
   Text,
@@ -27,7 +28,7 @@ export default function Edit() {
   const [hashtags, setHashtags] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch(`http://localhost:8080/picture/info?id=${id}`, {
+    fetch(`/api/picture/info?id=${id}`, {
       method: "GET",
       headers: {
         Authorization: cookies.get("accessToken"),
@@ -44,6 +45,12 @@ export default function Edit() {
             res.hashtags
           );
         });
+      } else {
+        res.json().then(res => {
+          toast({
+            description: res,
+          });
+        })
       }
     });
   }, []);
@@ -56,7 +63,7 @@ export default function Edit() {
       description: description,
       hashtags: hashtags
     })
-    fetch("http://localhost:8080/picture/update", {
+    fetch("/api/picture/update", {
       method: "POST",
       headers: {
         Authorization: cookies.get("accessToken"),

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   Text,
   HStack,
@@ -25,6 +26,8 @@ import {
   SliderMark,
   Box,
 } from "@chakra-ui/react";
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
 
 import { DownloadIcon } from "@chakra-ui/icons";
 
@@ -49,10 +52,10 @@ const Image = ({
   const [height, setHeight] = useState<string>("0");
   const [width, setWidth] = useState<string>("0");
   const [blur, setBlur] = useState<number>(0);
-  const [sapia, setSapia] = useState<number>(0);
+  const [sepia, setSepia] = useState<number>(0);
 
   const getEditedImage = () => {
-    fetch("http://localhost:8080/picture/edited", {
+    fetch("/api/public/picture/edited", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -63,8 +66,8 @@ const Image = ({
         format: format,
         height: height,
         width: width,
-        blur: blur/100,
-        sapia: sapia/100,
+        blur: blur / 100,
+        sepia: sepia / 100,
       }),
     })
       .then((res) => res.blob())
@@ -91,7 +94,9 @@ const Image = ({
       p={5}
       borderRadius="5px"
     >
-      <img src={url} alt={description} />
+      <Zoom>
+        <img src={url} alt={description} />
+      </Zoom>
       <Text fontSize="18px" p={0} m={0}>
         {title}
       </Text>
@@ -140,10 +145,10 @@ const Image = ({
                 <NumberInputField />
               </NumberInput>
               <Box pt={6} pb={2} my={2}>
-                <Text>Sapia: </Text>
+                <Text>Sepia: </Text>
                 <Slider
                   aria-label="slider-ex-6"
-                  onChange={(val) => setSapia(val)}
+                  onChange={(val) => setSepia(val)}
                   defaultValue={0}
                 >
                   <SliderMark value={25} {...labelStyles}>
@@ -156,7 +161,7 @@ const Image = ({
                     75%
                   </SliderMark>
                   <SliderMark
-                    value={sapia}
+                    value={sepia}
                     textAlign="center"
                     bg="blue.500"
                     color="white"
@@ -165,7 +170,7 @@ const Image = ({
                     w="12"
                     borderRadius="10px"
                   >
-                    {sapia}%
+                    {sepia}%
                   </SliderMark>
                   <SliderTrack>
                     <SliderFilledTrack />

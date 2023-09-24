@@ -11,6 +11,7 @@ type PlanService interface {
 	GetPlans() ([]models.Plan, error)
 }
 
+//go:generate mockery --output=./tests/mocks --name=PlanService
 type PlanController struct {
 	planService PlanService
 }
@@ -25,7 +26,7 @@ func (c *PlanController) GetPlans() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		plans, err := c.planService.GetPlans()
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 		}
 		ctx.JSON(http.StatusOK, plans)
 	}

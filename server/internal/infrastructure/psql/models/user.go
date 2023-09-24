@@ -10,6 +10,6 @@ type User struct {
 	Username  string
 	Password  string
 	Email     string
-	RoleID    int64 `gorm:"default:2"`
+	RoleID    int64 `gorm:"default:1"`
 	Role      *Role
 }

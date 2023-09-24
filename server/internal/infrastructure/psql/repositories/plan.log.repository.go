@@ -52,7 +52,7 @@ func (r *PlanLogRepository) GetUserPlan(userID int64) (*models.PlanLog, error) {
 	var userPlanLog models.PlanLog
 	if err := r.database.Preload("Plan").Where("user_id = ?", userID).Last(&userPlanLog).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			r.database.Create(models.PlanLog{
+			r.database.Create(&models.PlanLog{
 				UserID:    userID,
 				PlanID:    1,
 				CreatedAt: time.Now(),

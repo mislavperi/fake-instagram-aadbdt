@@ -3,12 +3,12 @@ package models
 type Filter struct {
 	Title       *string   `json:"title"`
 	Description *string   `json:"description"`
-	TimeRange   *Range    `json:"timerange"`
+	DateRange   *Range    `json:"dateRange"`
 	Hashtags    []*string `json:"hashtags"`
 	User        *string   `json:"user"`
 }
 
 type Range struct {
-	Gte *uint64 `json:"gte"`
-	Lte *uint64 `json:"lte"`
+	Gte *string `json:"gte"`
+	Lte *string `json:"lte"`
 }

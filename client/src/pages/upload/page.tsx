@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Cookies from "universal-cookie";
 
 import { useContext, useState, useCallback, SyntheticEvent, useEffect } from "react";
@@ -12,7 +13,8 @@ import {
   Stack,
   NumberInput,
   NumberInputField,
-  Flex
+  Flex,
+  useToast
 } from "@chakra-ui/react";
 
 import { UserContext } from "../../context/userContext";
@@ -26,15 +28,8 @@ export default function UploadImage() {
 
   const user = useContext(UserContext);
 
-  useEffect(() => {
-    fetch("http://localhost:8080/consumption/get", {
-      headers: {
-        Accept: "application/json",
-        Authorization: accessToken,
-        Refresh: refreshToken
-      }
-    })
-  },[])
+  const toast = useToast()
+
 
   const [picture, setPicture ] = useState<string>();
   const [title, setTitle] = useState<string>("");
@@ -68,14 +63,14 @@ export default function UploadImage() {
       formData.append("width", width);
     }
 
-    fetch("http://localhost:8080/picture/upload", {
+    fetch("/api/picture/upload", {
       method: "POST",
       headers: {
         Authorization: accessToken,
         Refresh: refreshToken,
       },
       body: formData,
-    });
+    }).then(res => res.json()).then(res => toast)
   }
 
   return (

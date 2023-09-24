@@ -12,17 +12,14 @@ type PlanMapper interface {
 }
 
 type PlanService struct {
-
 	planRepository interfaces.PlanRepository
 	planMapper     PlanMapper
-	logRepository  interfaces.LogRepository
 }
 
-func NewPlanService(planRepository interfaces.PlanRepository, planMapper PlanMapper, logRepository interfaces.LogRepository) *PlanService {
+func NewPlanService(planRepository interfaces.PlanRepository, planMapper PlanMapper, logService LogServiceUpload) *PlanService {
 	return &PlanService{
 		planRepository: planRepository,
 		planMapper:     planMapper,
-		logRepository:  logRepository,
 	}
 }
 

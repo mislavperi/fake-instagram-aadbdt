@@ -7,6 +7,6 @@ type Filter = {
 }
 
 type DateRange = {
-    gte: Date;
-    lte: Date;
+    gte: Date | null;
+    lte: Date | null;
 }

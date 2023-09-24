@@ -2,6 +2,8 @@ package services
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"image"
 	"os"
 	"strconv"
@@ -15,8 +17,14 @@ import (
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/services/interfaces"
 	psqlmodels "github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
 	"github.com/nfnt/resize"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/image/bmp"
 )
+
+type PictureMetrics interface {
+	OnUploadStart() *prometheus.Timer
+	OnUploadFinish(timer *prometheus.Timer)
+}
 
 type PictureService struct {
 	userService        *UserService
@@ -27,6 +35,8 @@ type PictureService struct {
 
 	s3Repository  S3Repository
 	logRepository interfaces.LogRepository
+
+	metrics PictureMetrics
 }
 
 type PictureMapper interface {
@@ -46,7 +56,7 @@ type PictureRepository interface {
 	UpdateImage(id int, description string, hashtags []string, userID int, userRole string) error
 }
 
-func NewPictureService(userService *UserService, dailyUploadService interfaces.DailyUploadService, pictureRepository PictureRepository, pictureMapper PictureMapper, logRepository interfaces.LogRepository, s3Repository S3Repository) *PictureService {
+func NewPictureService(userService *UserService, dailyUploadService interfaces.DailyUploadService, pictureRepository PictureRepository, pictureMapper PictureMapper, logRepository interfaces.LogRepository, s3Repository S3Repository, metrics PictureMetrics) *PictureService {
 	return &PictureService{
 		pictureRepository: pictureRepository,
 		pictureMapper:     pictureMapper,
@@ -56,10 +66,27 @@ func NewPictureService(userService *UserService, dailyUploadService interfaces.D
 
 		logRepository: logRepository,
 		s3Repository:  s3Repository,
+
+		metrics: metrics,
 	}
 }
 
 func (s *PictureService) UploadImage(file multipart.File, title string, description string, hashtags []string, id int, height string, width string, fileExt string) error {
+	timer := s.metrics.OnUploadStart()
+	defer s.metrics.OnUploadFinish(timer)
+
+	plan, consumption, uploadCount, _, err := s.dailyUploadService.GetStatistics(id)
+	if err != nil {
+		return nil
+	}
+	if plan.DailyUploadLimit <= uint32(*uploadCount) {
+		return errors.New("daily upload breached")
+	}
+
+	if plan.UploadLimitSizeKb <= uint32(*consumption) {
+		return errors.New("total upload limit reached")
+	}
+
 	decodedImage, _, err := image.Decode(file)
 	if err != nil {
 		return err
@@ -94,6 +121,10 @@ func (s *PictureService) UploadImage(file multipart.File, title string, descript
 		return err
 	}
 
+	if uint64(*consumption)*uint64(len(encodedImage.Bytes())/1024) > uint64(plan.UploadLimitSizeKb) {
+		return errors.New("upload will exceed upload limit, denied upload")
+	}
+
 	pictureURI, err := s.s3Repository.UploadToBucket(encodedImage, fileExt)
 	if err != nil {
 		return err
@@ -112,6 +143,7 @@ func (s *PictureService) UploadImage(file multipart.File, title string, descript
 }
 
 func (s *PictureService) GetImages(filter models.Filter) ([]models.Picture, error) {
+	fmt.Printf("%+v", filter)
 	pictures, err := s.pictureRepository.GetImages(filter)
 	if err != nil {
 		return nil, err

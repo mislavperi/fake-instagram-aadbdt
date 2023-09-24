@@ -1,7 +1,7 @@
+// @ts-nocheck
 import {
   Text,
   HStack,
-  Container,
   Input,
   Button,
   Wrap,
@@ -9,7 +9,7 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import Picture from "../../types/picture";
-import { RangeDatepicker } from "chakra-dayzed-datepicker";
+import { SingleDatepicker } from "chakra-dayzed-datepicker";
 import InputTag from "../../components/inputTag";
 import Image from "../../components/image";
 
@@ -26,15 +26,25 @@ export default function Home() {
   const [pictures, setPictures] = useState<Picture[]>([]);
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [filter, setFilter] = useState<Filter>({});
-  const [selectedDates, setSelectedDates] = useState<Date[]>([
-    new Date(),
-    new Date(),
-  ]);
+  const [fromDate, setFromDate] = useState<Date>();
+  const [toDate, setToDate] = useState<Date>();
 
   const getPictures = () => {
-    const queryParam: string = JSON.stringify(filter);
 
-    fetch(`http://localhost:8080/public/picture/get?filter=${queryParam}`)
+    filter.dateRange = {gte: null, lte: null}
+    if (fromDate !== null && filter.dateRange != undefined) {
+      filter.dateRange.gte = fromDate
+    }
+    if (toDate !== undefined && filter.dateRange != undefined) {
+      filter.dateRange.lte = toDate
+    }
+
+    if (hashtags.length > 0) {
+      filter.hashtags = hashtags
+    }
+
+    const queryParam: string = JSON.stringify(filter);
+    fetch(`/api/public/picture/get?filter=${queryParam}`)
       .then((res) => res.json())
       .then((res) => setPictures(res));
   };
@@ -53,7 +63,7 @@ export default function Home() {
   };
 
   return (
-    <main>
+    <main style={{ backgroundColor:"white" }}>
       <Wrap m={5}>
         <WrapItem>
           <HStack>
@@ -75,10 +85,17 @@ export default function Home() {
         </WrapItem>
         <WrapItem>
           <HStack>
-            <Text>Select date range: </Text>
-            <RangeDatepicker
-              selectedDates={selectedDates}
-              onDateChange={setSelectedDates}
+            <Text>Select from date: </Text>
+            <SingleDatepicker
+              date={fromDate}
+              onDateChange={setFromDate}
+            />
+          </HStack>
+          <HStack>
+            <Text>Select to date: </Text>
+            <SingleDatepicker
+              date={toDate}
+              onDateChange={setToDate}
             />
           </HStack>
         </WrapItem>
@@ -91,25 +108,23 @@ export default function Home() {
         <Button onClick={getPictures}>Apply filter</Button>
       </HStack>
       <Wrap>
-        <WrapItem>
-          {pictures.length !== 0 || pictures !== null
-            ? pictures.map((image) => {
-              const timestamp = new Date(image.uploadDateTime)
+        {pictures !== null
+          ? pictures.map((image) => {
+              const timestamp = new Date(image.uploadDateTime);
               return (
-                <Container key={image.id}>
-                <Image
-                  id={image.id}
-                  title={image.title}
-                  description={image.description}
-                  url={image.pictureURI}
-                  dateTime={timestamp.toLocaleString()}
-                  hashtags={image.hashtags}
-                />
-              </Container>
-              )
-            } )
-            : null}
-        </WrapItem>
+                <WrapItem key={image.id}>
+                  <Image
+                    id={image.id}
+                    title={image.title}
+                    description={image.description}
+                    url={image.pictureURI}
+                    dateTime={timestamp.toLocaleString()}
+                    hashtags={image.hashtags}
+                  />
+                </WrapItem>
+              );
+            })
+          : null}
       </Wrap>
     </main>
   );

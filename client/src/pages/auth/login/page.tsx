@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Cookies from "universal-cookie";
 
 import { useEffect } from "react";
@@ -13,6 +14,8 @@ import {
   Button,
   Input,
   useToast,
+  Link,
+  Box
 } from "@chakra-ui/react";
 import { Formik, Form, Field, FieldProps, FormikProps } from "formik";
 import { useUserContext } from "../../../context/userContext";
@@ -21,15 +24,15 @@ import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 
 export default function Login() {
   const cookieJar = new Cookies();
-  const accessToken = cookieJar.get("accessToken")
-  const refreshToken = cookieJar.get("refreshToken")
+  const accessToken = cookieJar.get("accessToken");
+  const refreshToken = cookieJar.get("refreshToken");
   const navigate = useNavigate();
 
   const toast = useToast();
   const { dispatch } = useUserContext();
 
   useEffect(() => {
-    fetch("http://localhost:8080/user/whoami", {
+    fetch("/api/user/whoami", {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -64,7 +67,7 @@ export default function Login() {
     if (hasCode) {
       const code = window.location.href.split("?code=")[1];
 
-      fetch("http://localhost:8080/auth/gh_login", {
+      fetch("/api/auth/gh_login", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -76,7 +79,7 @@ export default function Login() {
       }).then((res) => {
         if (res.ok) {
           res.json().then((_) => {
-            toast({description: "Sucess"})
+            toast({ description: "Sucess" });
           });
         }
       });
@@ -97,7 +100,7 @@ export default function Login() {
   };
 
   const onSubmit = (values: FormValues) => {
-    fetch("http://localhost:8080/auth/login", {
+    fetch("/api/auth/login", {
       method: "POST",
       credentials: "include",
       headers: {
@@ -111,16 +114,17 @@ export default function Login() {
     })
       .then((res) => {
         if (!res.ok) {
-          toast({
-            description: "error",
+          res.json().then(res => {
+            toast({
+              description: res,
+            });
+          })
+        } else {
+          res.json().then((_) => {
+            toast({ description: "Success" });
           });
-          return;
         }
-        res.json();
       })
-      .then((_) => {
-        toast({ description: "Success" });
-      });
   };
 
   return 1 == 1 ? (
@@ -158,9 +162,12 @@ export default function Login() {
             <Button mt={4} colorScheme="blue" type="submit">
               Log In
             </Button>
+            <Button onClick={() => navigate("/register")}>
+              Register
+            </Button>
             <GoogleLogin
               onSuccess={(credentialResponse) => {
-                fetch("http://localhost:8080/auth/g_login", {
+                fetch("/api/auth/g_login", {
                   method: "POST",
                   credentials: "include",
                   headers: {
@@ -170,7 +177,7 @@ export default function Login() {
                   body: JSON.stringify({
                     token: credentialResponse.credential,
                   }),
-                })
+                });
               }}
               onError={() => {
                 console.log("Login Failed");

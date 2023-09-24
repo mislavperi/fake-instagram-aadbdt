@@ -3,7 +3,6 @@ package controllers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -12,6 +11,7 @@ import (
 	customerrors "github.com/mislavperi/fake-instagram-aadbdt/server/utils/errors"
 )
 
+//go:generate mockery --output=./tests/mocks --name=UserService
 type UserService interface {
 	Create(firstName string, lastName string, username string, email string, password string) error
 	Login(username string, password string) (*string, *string, error)
@@ -19,9 +19,9 @@ type UserService interface {
 	SelectUserPlan(id int, plan models.Plan) error
 	AuthenticateGoogleUser(credentials models.GoogleToken) (*string, *string, error)
 	AuthenticateGithubUser(credentials models.GHCredentials) (*string, *string, error)
-	GetAllUsers() ([]models.User, error)
+	GetAllUsers(adminID int) ([]models.User, error)
 	InsertAdminPlanChange(adminID int, userID int, planID int) error
-	GetUserLogs(userID int) ([]models.Log, error)
+	GetUserLogs(userID int, adminID int) ([]models.Log, error)
 }
 
 type UserController struct {
@@ -38,13 +38,14 @@ func (c *UserController) Whoami() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusBadRequest)
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
 			return
 		}
 
 		user, err := c.UserService.GetUserInformation(identifier)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		ctx.JSON(http.StatusOK, user)
@@ -55,19 +56,20 @@ func (c *UserController) SetUserPlan() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var plan models.Plan
 		if err := ctx.BindJSON(&plan); err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 
 		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 
 		err = c.UserService.SelectUserPlan(identifier, plan)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		ctx.JSON(http.StatusOK, nil)
@@ -81,25 +83,26 @@ func (c *UserController) AdminUserPlanChange() gin.HandlerFunc {
 
 		userIDInt, err := strconv.Atoi(userID)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		planIDInt, err := strconv.Atoi(planID)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 
 		adminID, err := strconv.Atoi(ctx.GetHeader("Identifier"))
 		if err != nil {
-			fmt.Println(err)
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 
 		err = c.UserService.InsertAdminPlanChange(adminID, userIDInt, planIDInt)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		ctx.JSON(http.StatusOK, nil)
@@ -110,12 +113,13 @@ func (c *UserController) RegisterUser() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var newUser models.User
 		if err := ctx.BindJSON(&newUser); err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		err := c.UserService.Create(newUser.FirstName, newUser.LastName, newUser.Username, newUser.Email, newUser.Password)
 		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, errors.New("error while registering user"))
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, errors.New("error while registering user"))
 			return
 		}
 		ctx.JSON(http.StatusOK, nil)
@@ -126,16 +130,16 @@ func (c *UserController) Login() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var user models.User
 		if err := ctx.BindJSON(&user); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, nil)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, nil)
 			return
 		}
-		accessToken, refreshToken, err := c.UserService.Login(user.Email, user.Password)
+		accessToken, refreshToken, err := c.UserService.Login(user.Username, user.Password)
 		if err != nil {
 			if customerrors.IsInvalidCredentialsError(err) {
-				ctx.AbortWithError(http.StatusUnauthorized, errors.New("invalid credentials"))
+				ctx.AbortWithStatusJSON(http.StatusUnauthorized, errors.New("invalid credentials"))
 				return
 			}
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		ctx.SetCookie("accessToken", *accessToken, 3600, "", "localhost", false, false)
@@ -151,7 +155,7 @@ func (c *UserController) LoginGithub() gin.HandlerFunc {
 		ctx.BindJSON(&ghCredentials)
 		accessToken, refreshToken, err := c.UserService.AuthenticateGithubUser(ghCredentials)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		ctx.SetCookie("accessToken", *accessToken, 3600, "/", "localhost", false, false)
@@ -167,7 +171,7 @@ func (c *UserController) LoginGoogle() gin.HandlerFunc {
 
 		accessToken, refreshToken, err := c.UserService.AuthenticateGoogleUser(googleCreds)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		ctx.SetCookie("accessToken", *accessToken, 3600, "/", "localhost", false, true)
@@ -179,9 +183,15 @@ func (c *UserController) LoginGoogle() gin.HandlerFunc {
 
 func (c *UserController) GetAllUsers() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		users, err := c.UserService.GetAllUsers()
+		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
 		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, err)
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
+			return
+		}
+		users, err := c.UserService.GetAllUsers(identifier)
+		if err != nil {
+
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 			return
 		}
 		ctx.JSON(http.StatusOK, users)
@@ -194,11 +204,18 @@ func (c *UserController) GetUserLogs() gin.HandlerFunc {
 		incReq := ctx.Query("id")
 		err := json.Unmarshal([]byte(incReq), &userID)
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 		}
-		logs, err := c.UserService.GetUserLogs(userID)
+		identifier, err := strconv.Atoi(ctx.GetHeader("Identifier"))
 		if err != nil {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
+
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, err)
+			return
+		}
+
+		logs, err := c.UserService.GetUserLogs(userID, identifier)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, err)
 		}
 		ctx.JSON(http.StatusOK, logs)
 	}

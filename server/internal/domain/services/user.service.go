@@ -13,9 +13,17 @@ import (
 	"github.com/mislavperi/fake-instagram-aadbdt/server/internal/domain/models"
 	psqlmodels "github.com/mislavperi/fake-instagram-aadbdt/server/internal/infrastructure/psql/models"
 	enums "github.com/mislavperi/fake-instagram-aadbdt/server/utils/enums/action"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+type UserMetrics interface {
+	OnLoginStart(label string) *prometheus.Timer
+	OnLoginFinish(timer *prometheus.Timer)
+	OnCreationStart(label string) *prometheus.Timer
+	OnCreationFinish(timer *prometheus.Timer)
+}
 
 type UserMapper interface {
 	MapUserToDTO(plan models.Plan) psqlmodels.Plan
@@ -47,12 +55,14 @@ type UserService struct {
 
 	UserRepository UserRepository
 
+	metrics UserMetrics
+
 	ghClientId     string
 	ghClientSecret string
 	secretKey      string
 }
 
-func NewUserService(userRepository UserRepository, userMapper UserMapper, planService PlanDomain, planLogService *PlanLogService, logService *LogService, ghClientId string, ghClientSecret string, secretKey string) *UserService {
+func NewUserService(userRepository UserRepository, userMapper UserMapper, planService PlanDomain, planLogService *PlanLogService, logService *LogService, metrics UserMetrics, ghClientId string, ghClientSecret string, secretKey string) *UserService {
 	return &UserService{
 		UserRepository: userRepository,
 		userMapper:     userMapper,
@@ -61,6 +71,7 @@ func NewUserService(userRepository UserRepository, userMapper UserMapper, planSe
 		ghClientId:     ghClientId,
 		ghClientSecret: ghClientSecret,
 		secretKey:      secretKey,
+		metrics:        metrics,
 	}
 }
 
@@ -79,6 +90,8 @@ func (s *UserService) GetUserInformation(id int) (*models.User, error) {
 }
 
 func (s *UserService) Create(firstName string, lastName string, username string, email string, password string) error {
+	timer := s.metrics.OnCreationStart("standard_user")
+	defer s.metrics.OnCreationFinish(timer)
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
 		return err
@@ -87,11 +100,17 @@ func (s *UserService) Create(firstName string, lastName string, username string,
 	if err != nil {
 		return err
 	}
+	err = s.planLogService.SetDefaultPlan(int64(*userID))
+	if err != nil {
+		return err
+	}
 	s.logService.LogAction(*userID, enums.CREATE_USER.String())
 	return nil
 }
 
 func (s *UserService) Login(username string, password string) (*string, *string, error) {
+	timer := s.metrics.OnLoginStart("standard_user")
+	defer s.metrics.OnLoginFinish(timer)
 	id, err := s.UserRepository.CheckCredentials(username, password)
 	if err != nil {
 		return nil, nil, err
@@ -156,6 +175,8 @@ func (s *UserService) InsertAdminPlanChange(adminID int, userID int, planID int)
 func (s *UserService) AuthenticateGithubUser(credentials models.GHCredentials) (*string, *string, error) {
 	var ghToken models.GHToken
 	var ghUser models.GHUser
+	timer := s.metrics.OnLoginStart("github_user")
+	defer s.metrics.OnLoginFinish(timer)
 
 	body := models.GHCredsReq{
 		Code:         credentials.Code,
@@ -216,6 +237,8 @@ func (s *UserService) AuthenticateGithubUser(credentials models.GHCredentials) (
 
 func (s *UserService) AuthenticateGoogleUser(credentials models.GoogleToken) (*string, *string, error) {
 	var googleUser models.GoogleUser
+	timer := s.metrics.OnLoginStart("google_user")
+	defer s.metrics.OnLoginFinish(timer)
 
 	token, err := jwt.ParseWithClaims(
 		credentials.GoogleJWT,
@@ -267,19 +290,21 @@ func (s *UserService) AuthenticateGoogleUser(credentials models.GoogleToken) (*s
 	return accessToken, refreshToken, nil
 }
 
-func (s *UserService) GetAllUsers() ([]models.User, error) {
+func (s *UserService) GetAllUsers(adminID int) ([]models.User, error) {
 	users, err := s.UserRepository.GetAllUsers()
 	if err != nil {
 		return nil, err
 	}
 	mappedUsers := s.userMapper.MapDTOToUsers(users)
+	s.logService.LogAction(adminID, enums.GET_USERS.String())
 	return mappedUsers, nil
 }
 
-func (s *UserService) GetUserLogs(userID int) ([]models.Log, error) {
+func (s *UserService) GetUserLogs(userID int, adminID int) ([]models.Log, error) {
 	logs, err := s.logService.GetUserLogs(userID)
 	if err != nil {
 		return nil, err
 	}
+	s.logService.LogAction(adminID, enums.GET_USER_LOGS.String())
 	return logs, nil
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState } from "react";
 import Cookies from "universal-cookie";
 import User from "../../../types/user";
@@ -8,6 +9,7 @@ import {
   Avatar,
   IconButton,
   VStack,
+  useToast
 } from "@chakra-ui/react";
 import { EditIcon, AttachmentIcon } from "@chakra-ui/icons";
 import { useNavigate }  from "react-router-dom";
@@ -17,11 +19,13 @@ export default function Admin() {
   const cookieJar = new Cookies();
   const navigate = useNavigate();
 
+  const toast = useToast()
+
   const accessToken = cookieJar.get("accessToken");
   const refreshToken = cookieJar.get("refreshToken");
 
   useEffect(() => {
-    fetch("http://localhost:8080/admin/users", {
+    fetch("/api/admin/users", {
       headers: {
         Authorization: accessToken,
         Refresh: refreshToken,
@@ -30,6 +34,12 @@ export default function Admin() {
     }).then((res) => {
       if (res.ok) {
         res.json().then((res) => setUsers(res));
+      } else {
+        res.json().then(res => {
+          toast({
+            description: res,
+          });
+        })
       }
     });
   }, []);
